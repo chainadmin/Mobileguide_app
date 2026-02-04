@@ -6,15 +6,18 @@ import type { RootStackParamList } from '../../App';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import { useEntitlements } from '../context/EntitlementsContext';
+import { usePlatformFilters } from '../context/PlatformFiltersContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const TMDB_LOGO_URL = 'https://www.themoviedb.org/assets/2/v4/logos/v2/blue_short-8e7b30f73a4020692ccca9c88bafe5dcb6f8a62a4c6bc55cd9ba82bb2cd95f6c.svg';
+const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app';
 
 const SettingsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
   const { isPro, setPro, restorePurchases } = useEntitlements();
+  const { selectedPlatforms, isEnabled } = usePlatformFilters();
   const [restoring, setRestoring] = useState(false);
 
   const openTMDB = () => {
@@ -47,10 +50,16 @@ const SettingsScreen = () => {
 
   const handlePlatformFilters = () => {
     if (isPro) {
-      Alert.alert('Coming Soon', 'Platform filters will be available in the next update.');
+      navigation.navigate('PlatformFilters');
     } else {
       navigation.navigate('Paywall');
     }
+  };
+
+  const getPlatformFiltersSummary = () => {
+    if (!isPro) return 'Pro feature';
+    if (!isEnabled || selectedPlatforms.length === 0) return 'Not configured';
+    return `${selectedPlatforms.length} service${selectedPlatforms.length !== 1 ? 's' : ''} selected`;
   };
 
   return (
@@ -100,7 +109,7 @@ const SettingsScreen = () => {
             <View>
               <Text style={styles.settingLabel}>Platform Filters</Text>
               <Text style={isPro ? styles.settingValue : styles.settingValueMuted}>
-                {isPro ? 'Customize your services' : 'Pro feature'}
+                {getPlatformFiltersSummary()}
               </Text>
             </View>
             {!isPro && (
@@ -170,11 +179,11 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>LEGAL</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://buzzreel.app/privacy')}>
+          <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL(`${API_BASE_URL}/privacy`)}>
             <Text style={styles.linkRowText}>Privacy Policy</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL('https://buzzreel.app/terms')}>
+          <TouchableOpacity style={styles.linkRow} onPress={() => Linking.openURL(`${API_BASE_URL}/terms`)}>
             <Text style={styles.linkRowText}>Terms of Service</Text>
           </TouchableOpacity>
         </View>

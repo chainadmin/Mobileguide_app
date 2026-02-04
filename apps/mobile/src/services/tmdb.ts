@@ -82,14 +82,20 @@ export async function getTrending(
   return data.results;
 }
 
-export async function getPopularMovies(region: string = 'US'): Promise<TrendingItem[]> {
+export async function getPopularMovies(region: string = 'US', providerIds?: string[]): Promise<TrendingItem[]> {
+  const baseParams: Record<string, string> = {
+    watch_region: region,
+    with_watch_monetization_types: 'flatrate|free|ads',
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '20'
+  };
+  
+  if (providerIds && providerIds.length > 0) {
+    baseParams.with_watch_providers = providerIds.join('|');
+  }
+  
   const [streamable, local] = await Promise.all([
-    fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
-      watch_region: region,
-      with_watch_monetization_types: 'flatrate|free|ads',
-      sort_by: 'popularity.desc',
-      'vote_count.gte': '20'
-    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', baseParams),
     fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
       with_origin_country: region,
       sort_by: 'popularity.desc',
@@ -119,14 +125,20 @@ export async function getPopularMovies(region: string = 'US'): Promise<TrendingI
   return combined.slice(0, 20);
 }
 
-export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[]> {
+export async function getPopularTV(region: string = 'US', providerIds?: string[]): Promise<TrendingItem[]> {
+  const baseParams: Record<string, string> = {
+    watch_region: region,
+    with_watch_monetization_types: 'flatrate|free|ads',
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '20'
+  };
+  
+  if (providerIds && providerIds.length > 0) {
+    baseParams.with_watch_providers = providerIds.join('|');
+  }
+  
   const [streamable, local] = await Promise.all([
-    fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
-      watch_region: region,
-      with_watch_monetization_types: 'flatrate|free|ads',
-      sort_by: 'popularity.desc',
-      'vote_count.gte': '20'
-    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', baseParams),
     fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
       with_origin_country: region,
       sort_by: 'popularity.desc',
@@ -156,11 +168,11 @@ export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[
   return combined.slice(0, 20);
 }
 
-export async function getRegionalContent(region: string = 'US'): Promise<TrendingItem[]> {
-  console.log(`Fetching content for region: ${region}`);
+export async function getRegionalContent(region: string = 'US', providerIds?: string[]): Promise<TrendingItem[]> {
+  console.log(`Fetching content for region: ${region}${providerIds?.length ? ` with providers: ${providerIds.join(',')}` : ''}`);
   const [movies, tvShows] = await Promise.all([
-    getPopularMovies(region),
-    getPopularTV(region)
+    getPopularMovies(region, providerIds),
+    getPopularTV(region, providerIds)
   ]);
   console.log(`Got ${movies.length} movies and ${tvShows.length} TV shows for ${region}`);
   console.log(`First movie: ${movies[0]?.title || 'none'}, First TV: ${tvShows[0]?.name || 'none'}`);

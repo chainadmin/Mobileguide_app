@@ -84,10 +84,17 @@ This approach keeps frontend and backend code in a single repository while maint
   - Daily Digest enhanced: "Top 10 Today" with rank badges, "New This Week" for recent releases
   - Streak tracking: daily app opens tracked locally, displayed as "X days" badge on Trending
   - 24-hour caching for Daily Digest data
+- **Feb 2026**: Implemented full Pro features
+  - PlatformFiltersScreen for selecting streaming services (Netflix, Disney+, Max, etc.)
+  - PlatformFiltersContext stores selections in AsyncStorage
+  - AlertsContext for release alert toggles on watchlist items
+  - Watchlist cards show bell icons for Pro users to enable/disable alerts per title
+  - Privacy and Terms pages served from Railway API with full data disclosure
+  - Settings links updated to use Railway URL for legal pages
 - **Feb 2026**: Implemented Pro monetization structure
   - EntitlementsContext with isPro, setPro, restorePurchases functions
   - DEV ONLY toggle in Settings to simulate Pro mode for testing
-  - Pro unlocks: unlimited watchlist, platform filters, release alerts (stub), no ads (stub)
+  - Pro unlocks: unlimited watchlist, platform filters, release alerts, no ads (stub)
   - PaywallScreen with selling copy and Monthly/Yearly options
   - WatchlistContext bypasses 10-item limit when Pro is active
   - IAP_INTEGRATION.md documents how to plug in Expo IAP library

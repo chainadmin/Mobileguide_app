@@ -8,6 +8,7 @@ import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
 import { useWatchlist } from '../context/WatchlistContext';
 import { useEntitlements } from '../context/EntitlementsContext';
+import { useAlerts } from '../context/AlertsContext';
 import { getPosterUrl } from '../services/tmdb';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -16,6 +17,7 @@ const WatchlistScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { watchlist, removeFromWatchlist, loading, refreshWatchlist } = useWatchlist();
   const { isPro } = useEntitlements();
+  const { toggleAlert, isAlertEnabled } = useAlerts();
   const maxSlots = 10;
 
   useFocusEffect(
@@ -41,6 +43,14 @@ const WatchlistScreen = () => {
 
   const handleSettings = () => {
     navigation.navigate('Settings');
+  };
+
+  const handleToggleAlert = async (item: typeof watchlist[0]) => {
+    if (!isPro) {
+      navigation.navigate('Paywall');
+      return;
+    }
+    await toggleAlert(item.id, item.mediaType);
   };
 
   if (loading) {
@@ -93,7 +103,7 @@ const WatchlistScreen = () => {
       {isPro && (
         <View style={styles.proBanner}>
           <Text style={styles.proIcon}>🔔</Text>
-          <Text style={styles.proBannerText}>Release alerts are enabled</Text>
+          <Text style={styles.proBannerText}>Tap the bell to get release alerts</Text>
         </View>
       )}
 
@@ -103,30 +113,44 @@ const WatchlistScreen = () => {
           message="Save titles to keep track of what to watch next."
         />
       ) : (
-        watchlist.map((item) => (
-          <TouchableOpacity
-            key={`${item.mediaType}-${item.id}`}
-            style={styles.card}
-            onPress={() => handlePress(item)}
-            activeOpacity={0.8}
-          >
-            <Image
-              source={{ uri: getPosterUrl(item.posterPath, 'w185') }}
-              style={styles.poster}
-            />
-            <View style={styles.cardContent}>
-              <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-              <Text style={styles.type}>{item.mediaType === 'movie' ? 'Movie' : 'TV Series'}</Text>
-            </View>
+        watchlist.map((item) => {
+          const alertOn = isAlertEnabled(item.id, item.mediaType);
+          return (
             <TouchableOpacity
-              style={styles.removeButton}
-              onPress={() => handleRemove(item)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              key={`${item.mediaType}-${item.id}`}
+              style={styles.card}
+              onPress={() => handlePress(item)}
+              activeOpacity={0.8}
             >
-              <Text style={styles.removeText}>Remove</Text>
+              <Image
+                source={{ uri: getPosterUrl(item.posterPath, 'w185') }}
+                style={styles.poster}
+              />
+              <View style={styles.cardContent}>
+                <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+                <Text style={styles.type}>{item.mediaType === 'movie' ? 'Movie' : 'TV Series'}</Text>
+              </View>
+              <View style={styles.cardActions}>
+                {isPro && (
+                  <TouchableOpacity
+                    style={[styles.alertButton, alertOn && styles.alertButtonActive]}
+                    onPress={() => handleToggleAlert(item)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.alertIcon}>{alertOn ? '🔔' : '🔕'}</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => handleRemove(item)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.removeText}>Remove</Text>
+                </TouchableOpacity>
+              </View>
             </TouchableOpacity>
-          </TouchableOpacity>
-        ))
+          );
+        })
       )}
     </ScrollView>
   );
@@ -285,6 +309,20 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 12,
     marginTop: 4
+  },
+  cardActions: {
+    alignItems: 'flex-end',
+    gap: spacing.sm
+  },
+  alertButton: {
+    padding: spacing.xs,
+    opacity: 0.6
+  },
+  alertButtonActive: {
+    opacity: 1
+  },
+  alertIcon: {
+    fontSize: 18
   },
   removeButton: {
     paddingHorizontal: spacing.sm,

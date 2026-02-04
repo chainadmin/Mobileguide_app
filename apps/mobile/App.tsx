@@ -5,8 +5,11 @@ import { colors } from './src/theme';
 import { RegionProvider } from './src/context/RegionContext';
 import { WatchlistProvider } from './src/context/WatchlistContext';
 import { EntitlementsProvider } from './src/context/EntitlementsContext';
+import { PlatformFiltersProvider } from './src/context/PlatformFiltersContext';
+import { AlertsProvider } from './src/context/AlertsContext';
 
 import PaywallScreen from './src/screens/PaywallScreen';
+import PlatformFiltersScreen from './src/screens/PlatformFiltersScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
@@ -22,6 +25,7 @@ export type RootStackParamList = {
   TitleDetail: { mediaType: 'movie' | 'tv'; tmdbId: number };
   Paywall: undefined;
   Settings: undefined;
+  PlatformFilters: undefined;
 };
 
 const darkTheme = {
@@ -69,49 +73,58 @@ const Tabs = () => {
 const AppContent = () => {
   return (
     <RegionProvider>
-      <WatchlistProvider>
-        <NavigationContainer theme={darkTheme}>
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.textPrimary,
-            headerTitleStyle: { fontWeight: '700' },
-            contentStyle: { backgroundColor: colors.background }
-          }}
-        >
-          <Stack.Screen
-            name="Splash"
-            component={SplashScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="RegionSelect"
-            component={RegionSelectScreen}
-            options={{ title: 'Select Region' }}
-          />
-          <Stack.Screen
-            name="Tabs"
-            component={Tabs}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="TitleDetail"
-            component={TitleDetailScreen}
-            options={{ title: 'Details' }}
-          />
-          <Stack.Screen
-            name="Paywall"
-            component={PaywallScreen}
-            options={{ title: 'Go Pro', presentation: 'modal' }}
-          />
-          <Stack.Screen
-            name="Settings"
-            component={SettingsScreen}
-            options={{ title: 'Settings' }}
-          />
-        </Stack.Navigator>
-        </NavigationContainer>
-      </WatchlistProvider>
+      <PlatformFiltersProvider>
+        <AlertsProvider>
+          <WatchlistProvider>
+            <NavigationContainer theme={darkTheme}>
+            <Stack.Navigator
+              screenOptions={{
+                headerStyle: { backgroundColor: colors.background },
+                headerTintColor: colors.textPrimary,
+                headerTitleStyle: { fontWeight: '700' },
+                contentStyle: { backgroundColor: colors.background }
+              }}
+            >
+              <Stack.Screen
+                name="Splash"
+                component={SplashScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="RegionSelect"
+                component={RegionSelectScreen}
+                options={{ title: 'Select Region' }}
+              />
+              <Stack.Screen
+                name="Tabs"
+                component={Tabs}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="TitleDetail"
+                component={TitleDetailScreen}
+                options={{ title: 'Details' }}
+              />
+              <Stack.Screen
+                name="Paywall"
+                component={PaywallScreen}
+                options={{ title: 'Go Pro', presentation: 'modal' }}
+              />
+              <Stack.Screen
+                name="Settings"
+                component={SettingsScreen}
+                options={{ title: 'Settings' }}
+              />
+              <Stack.Screen
+                name="PlatformFilters"
+                component={PlatformFiltersScreen}
+                options={{ title: 'Platform Filters' }}
+              />
+            </Stack.Navigator>
+            </NavigationContainer>
+          </WatchlistProvider>
+        </AlertsProvider>
+      </PlatformFiltersProvider>
     </RegionProvider>
   );
 };

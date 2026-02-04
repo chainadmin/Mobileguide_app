@@ -8,6 +8,8 @@ import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
+import { usePlatformFilters, STREAMING_PLATFORMS } from '../context/PlatformFiltersContext';
+import { useEntitlements } from '../context/EntitlementsContext';
 import {
   getRegionalContent,
   getNewThisWeek,
@@ -45,17 +47,22 @@ type DigestItem = {
 };
 
 const DIGEST_CACHE_KEY = 'daily_digest';
-const DIGEST_CACHE_HOURS = 24;
 
 const TrendingScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
+  const { isPro } = useEntitlements();
+  const { selectedPlatforms, isEnabled: filtersEnabled } = usePlatformFilters();
   const [tonightPicks, setTonightPicks] = useState<DisplayItem[]>([]);
   const [trendingNearYou, setTrendingNearYou] = useState<DisplayItem[]>([]);
   const [top10Today, setTop10Today] = useState<DigestItem[]>([]);
   const [newThisWeek, setNewThisWeek] = useState<DigestItem[]>([]);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  
+  const activeProviderIds = isPro && filtersEnabled && selectedPlatforms.length > 0 
+    ? selectedPlatforms 
+    : undefined;
 
   useEffect(() => {
     async function initStreak() {
@@ -73,17 +80,16 @@ const TrendingScreen = () => {
       const regionCode = region.code;
       
       const cachedDigest = await getCached<{ top10: DigestItem[]; newWeek: DigestItem[] }>(
-        `${DIGEST_CACHE_KEY}_${regionCode}`,
-        DIGEST_CACHE_HOURS
+        `${DIGEST_CACHE_KEY}_${regionCode}`
       );
 
-      if (cachedDigest) {
+      if (cachedDigest && !activeProviderIds) {
         setTop10Today(cachedDigest.top10);
         setNewThisWeek(cachedDigest.newWeek);
       }
 
       const [regionalContent, topBuzz, trendingToday, recentReleases] = await Promise.all([
-        getRegionalContent(regionCode),
+        getRegionalContent(regionCode, activeProviderIds),
         getTopBuzz(regionCode),
         getTrending('all', 'day'),
         getNewThisWeek(regionCode)
@@ -123,7 +129,7 @@ const TrendingScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [region]);
+  }, [region, activeProviderIds]);
 
   useFocusEffect(
     useCallback(() => {
@@ -218,6 +224,18 @@ const TrendingScreen = () => {
           </View>
         )}
       </View>
+      
+      {activeProviderIds && (
+        <View style={styles.filterBanner}>
+          <Text style={styles.filterIcon}>📺</Text>
+          <Text style={styles.filterText}>
+            Filtered to {selectedPlatforms.length} service{selectedPlatforms.length !== 1 ? 's' : ''}
+          </Text>
+          <TouchableOpacity onPress={() => navigation.navigate('PlatformFilters')}>
+            <Text style={styles.filterLink}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <SectionHeader title="TONIGHT" subtitle="Top picks curated for your evening." />
       <View style={styles.section}>
@@ -309,6 +327,28 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: '700'
+  },
+  filterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.md,
+    gap: spacing.sm
+  },
+  filterIcon: {
+    fontSize: 14
+  },
+  filterText: {
+    flex: 1,
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  filterLink: {
+    color: colors.textSecondary,
+    fontSize: 12
   },
   section: {
     marginBottom: 28
