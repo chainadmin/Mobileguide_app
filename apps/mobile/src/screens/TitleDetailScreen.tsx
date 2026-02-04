@@ -14,11 +14,11 @@ import {
   getBackdropUrl,
   formatRuntime,
   formatRating,
-  calculateBuzz,
   MovieDetails,
   TVDetails,
   WatchProvider
 } from '../services/tmdb';
+import { getBuzzCount, voteBuzz } from '../services/api';
 
 type TitleDetailRouteProp = RouteProp<RootStackParamList, 'TitleDetail'>;
 
@@ -28,16 +28,19 @@ const TitleDetailScreen = () => {
 
   const [details, setDetails] = useState<MovieDetails | TVDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
+  const [buzzCount, setBuzzCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchDetails() {
       try {
-        const [detailsData, providersData] = await Promise.all([
+        const [detailsData, providersData, buzzData] = await Promise.all([
           mediaType === 'movie' ? getMovieDetails(tmdbId) : getTVDetails(tmdbId),
-          getWatchProviders(mediaType, tmdbId)
+          getWatchProviders(mediaType, tmdbId),
+          getBuzzCount(mediaType, tmdbId)
         ]);
         setDetails(detailsData);
+        setBuzzCount(buzzData);
         if (providersData?.flatrate) {
           setProviders(providersData.flatrate.map((p: WatchProvider) => p.provider_name));
         }
@@ -49,6 +52,11 @@ const TitleDetailScreen = () => {
     }
     fetchDetails();
   }, [mediaType, tmdbId]);
+
+  const handleBuzzVote = async () => {
+    const newCount = await voteBuzz(mediaType, tmdbId);
+    setBuzzCount(newCount);
+  };
 
   if (loading || !details) {
     return (
@@ -103,7 +111,7 @@ const TitleDetailScreen = () => {
           ))}
         </View>
 
-        <BuzzMeter value={calculateBuzz(details.vote_average)} />
+        <BuzzMeter value={buzzCount} onPress={handleBuzzVote} showVoteHint={true} />
 
         <Text style={styles.sectionTitle}>WHERE TO WATCH</Text>
         {providers.length > 0 ? (
