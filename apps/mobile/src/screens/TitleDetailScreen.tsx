@@ -67,7 +67,7 @@ const TitleDetailScreen = () => {
       : 'N/A';
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       {details.backdrop_path && (
         <Image
           source={{ uri: getBackdropUrl(details.backdrop_path) }}

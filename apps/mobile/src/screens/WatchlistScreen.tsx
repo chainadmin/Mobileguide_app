@@ -44,7 +44,7 @@ const WatchlistScreen = () => {
   const count = watchlistItems.length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
       <View style={styles.countRow}>
         <Text style={styles.countLabel}>Free plan</Text>

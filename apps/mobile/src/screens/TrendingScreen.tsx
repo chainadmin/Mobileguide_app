@@ -91,7 +91,7 @@ const TrendingScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <SectionHeader title="TONIGHT" subtitle="Top picks curated for your evening." />
       <View style={styles.section}>
         {loading ? (
