@@ -81,16 +81,21 @@ export async function getTrending(
 }
 
 export async function getPopularMovies(region: string = 'US'): Promise<TrendingItem[]> {
-  const data = await fetchTMDB<{ results: TrendingItem[] }>('/movie/popular', {
-    region,
-    watch_region: region
+  const data = await fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
+    watch_region: region,
+    with_watch_monetization_types: 'flatrate|free|ads',
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '50'
   });
   return data.results.map(item => ({ ...item, media_type: 'movie' as MediaType }));
 }
 
 export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[]> {
-  const data = await fetchTMDB<{ results: TrendingItem[] }>('/tv/popular', {
-    watch_region: region
+  const data = await fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
+    watch_region: region,
+    with_watch_monetization_types: 'flatrate|free|ads',
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '50'
   });
   return data.results.map(item => ({ ...item, media_type: 'tv' as MediaType }));
 }
