@@ -36,12 +36,17 @@ This approach keeps frontend and backend code in a single repository while maint
 - **API Pattern**: RESTful endpoints under `/api/` prefix
 - **Current Endpoints**:
   - `GET /health` - Service health check
+  - `GET /setup-db` - Create/update database tables (run once after deploy)
   - `GET /api/buzz/:region/:mediaType/:tmdbId` - Get view count for a title in a region
   - `POST /api/buzz/:region/:mediaType/:tmdbId/view` - Record a view for a title in a region
   - `GET /api/buzz/:region/top` - Get top viewed titles in a region
   - `GET /api/watchlist/:guestId` - Get user's watchlist
   - `POST /api/watchlist/:guestId` - Add item to watchlist (10-item limit enforced)
   - `DELETE /api/watchlist/:guestId/:mediaType/:tmdbId` - Remove item from watchlist
+  - `GET /api/cache/trending/:region` - Get cached trending content (6hr cache)
+  - `GET /api/cache/title/:mediaType/:tmdbId` - Get cached title details (24hr cache)
+  - `GET /api/cache/providers/:mediaType/:tmdbId/:region` - Get cached providers (12hr cache)
+  - `GET /api/cache/upcoming/:region` - Get cached upcoming releases (6hr cache)
 - **Port**: Defaults to 4000, configurable via PORT environment variable
 - **Deployment**: Railway (welcoming-elegance-production-9299.up.railway.app)
 
@@ -54,6 +59,10 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Watchlists Table**: Stores user watchlists keyed by guest_id
   - Columns: guest_id, tmdb_id, media_type, title, poster_path, added_at
   - Unique constraint on (guest_id, tmdb_id, media_type)
+- **Cache Tables**: Server-side caching to reduce TMDB API calls
+  - `cached_trending`: Trending content by region (6hr expiry)
+  - `cached_titles`: Title details (24hr expiry)
+  - `cached_providers`: Watch providers by region (12hr expiry)
 
 ## External Dependencies
 
