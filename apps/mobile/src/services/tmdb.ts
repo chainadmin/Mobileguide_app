@@ -100,14 +100,23 @@ export async function getPopularMovies(region: string = 'US'): Promise<TrendingI
   const seen = new Set<number>();
   const combined: TrendingItem[] = [];
   
-  for (const item of [...streamable.results, ...local.results]) {
+  // Prioritize local content first (content from the region)
+  for (const item of local.results.slice(0, 10)) {
     if (!seen.has(item.id)) {
       seen.add(item.id);
       combined.push({ ...item, media_type: 'movie' as MediaType });
     }
   }
   
-  return combined.sort((a, b) => b.vote_average - a.vote_average).slice(0, 20);
+  // Then add streamable content
+  for (const item of streamable.results) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      combined.push({ ...item, media_type: 'movie' as MediaType });
+    }
+  }
+  
+  return combined.slice(0, 20);
 }
 
 export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[]> {
@@ -128,29 +137,37 @@ export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[
   const seen = new Set<number>();
   const combined: TrendingItem[] = [];
   
-  for (const item of [...streamable.results, ...local.results]) {
+  // Prioritize local content first (content from the region)
+  for (const item of local.results.slice(0, 10)) {
     if (!seen.has(item.id)) {
       seen.add(item.id);
       combined.push({ ...item, media_type: 'tv' as MediaType });
     }
   }
   
-  return combined.sort((a, b) => b.vote_average - a.vote_average).slice(0, 20);
+  // Then add streamable content
+  for (const item of streamable.results) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      combined.push({ ...item, media_type: 'tv' as MediaType });
+    }
+  }
+  
+  return combined.slice(0, 20);
 }
 
 export async function getRegionalContent(region: string = 'US'): Promise<TrendingItem[]> {
-  const cacheKey = `@buzzreel_cache_regional_${region}`;
-  const cached = await getCached<TrendingItem[]>(cacheKey);
-  if (cached) return cached;
-
+  console.log(`Fetching content for region: ${region}`);
   const [movies, tvShows] = await Promise.all([
     getPopularMovies(region),
     getPopularTV(region)
   ]);
+  console.log(`Got ${movies.length} movies and ${tvShows.length} TV shows for ${region}`);
+  console.log(`First movie: ${movies[0]?.title || 'none'}, First TV: ${tvShows[0]?.name || 'none'}`);
+  
   const combined = [...movies.slice(0, 10), ...tvShows.slice(0, 10)];
   const sorted = combined.sort((a, b) => b.vote_average - a.vote_average);
   
-  await setCache(cacheKey, sorted);
   return sorted;
 }
 

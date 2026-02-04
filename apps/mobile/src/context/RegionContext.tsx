@@ -73,7 +73,9 @@ export function RegionProvider({ children }: { children: ReactNode }) {
 
   async function setRegion(newRegion: Region) {
     try {
+      console.log(`Changing region to: ${newRegion.code}`);
       await clearRegionalCache();
+      console.log('Regional cache cleared');
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newRegion));
       setRegionState(newRegion);
     } catch (error) {
