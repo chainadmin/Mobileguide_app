@@ -1,3 +1,5 @@
+import { getCached, setCache } from './cache';
+
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
@@ -101,27 +103,53 @@ export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[
 }
 
 export async function getRegionalContent(region: string = 'US'): Promise<TrendingItem[]> {
+  const cacheKey = `@buzzreel_cache_regional_${region}`;
+  const cached = await getCached<TrendingItem[]>(cacheKey);
+  if (cached) return cached;
+
   const [movies, tvShows] = await Promise.all([
     getPopularMovies(region),
     getPopularTV(region)
   ]);
   const combined = [...movies.slice(0, 10), ...tvShows.slice(0, 10)];
-  return combined.sort((a, b) => b.vote_average - a.vote_average);
+  const sorted = combined.sort((a, b) => b.vote_average - a.vote_average);
+  
+  await setCache(cacheKey, sorted);
+  return sorted;
 }
 
 export async function getUpcoming(region: string = 'US'): Promise<TrendingItem[]> {
+  const cacheKey = `@buzzreel_cache_upcoming_${region}`;
+  const cached = await getCached<TrendingItem[]>(cacheKey);
+  if (cached) return cached;
+
   const data = await fetchTMDB<{ results: TrendingItem[] }>('/movie/upcoming', {
     region
   });
-  return data.results.map(item => ({ ...item, media_type: 'movie' as MediaType }));
+  const results = data.results.map(item => ({ ...item, media_type: 'movie' as MediaType }));
+  
+  await setCache(cacheKey, results);
+  return results;
 }
 
 export async function getMovieDetails(movieId: number): Promise<MovieDetails> {
-  return fetchTMDB<MovieDetails>(`/movie/${movieId}`);
+  const cacheKey = `@buzzreel_cache_movie_${movieId}`;
+  const cached = await getCached<MovieDetails>(cacheKey);
+  if (cached) return cached;
+
+  const data = await fetchTMDB<MovieDetails>(`/movie/${movieId}`);
+  await setCache(cacheKey, data);
+  return data;
 }
 
 export async function getTVDetails(tvId: number): Promise<TVDetails> {
-  return fetchTMDB<TVDetails>(`/tv/${tvId}`);
+  const cacheKey = `@buzzreel_cache_tv_${tvId}`;
+  const cached = await getCached<TVDetails>(cacheKey);
+  if (cached) return cached;
+
+  const data = await fetchTMDB<TVDetails>(`/tv/${tvId}`);
+  await setCache(cacheKey, data);
+  return data;
 }
 
 export async function getWatchProviders(
