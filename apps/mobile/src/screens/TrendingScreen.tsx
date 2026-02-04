@@ -9,7 +9,7 @@ import SkeletonCard from '../components/SkeletonCard';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import {
-  getTrending,
+  getRegionalContent,
   getWatchProviders,
   getPosterUrl,
   formatRating,
@@ -47,20 +47,20 @@ const TrendingScreen = () => {
       setLoading(true);
       const regionCode = region.code;
       
-      const [dayTrending, topBuzz] = await Promise.all([
-        getTrending('all', 'day'),
+      const [regionalContent, topBuzz] = await Promise.all([
+        getRegionalContent(regionCode),
         getTopBuzz(regionCode)
       ]);
 
       const buzzMap = new Map(topBuzz.map(b => [`${b.media_type}-${b.tmdb_id}`, b.view_count]));
 
       const tonightItems = await Promise.all(
-        dayTrending.slice(0, 2).map(item => transformItem(item, buzzMap, regionCode))
+        regionalContent.slice(0, 2).map(item => transformItem(item, buzzMap, regionCode))
       );
       setTonightPicks(tonightItems);
 
       const nearYouItems = await Promise.all(
-        dayTrending.slice(2, 7).map(item => transformItem(item, buzzMap, regionCode))
+        regionalContent.slice(2, 7).map(item => transformItem(item, buzzMap, regionCode))
       );
       setTrendingNearYou(nearYouItems);
     } catch (error) {

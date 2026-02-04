@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
 import { colors, spacing } from '../theme';
+import { useRegion } from '../context/RegionContext';
 import {
   getUpcoming,
   getWatchProviders,
@@ -33,43 +35,51 @@ type Section = {
 };
 
 const UpcomingScreen = () => {
+  const { region } = useRegion();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const upcoming = await getUpcoming();
-        const items = await Promise.all(
-          upcoming.slice(0, 10).map(item => transformItem(item))
-        );
+  const fetchData = useCallback(async () => {
+    if (!region) return;
+    
+    try {
+      setLoading(true);
+      const regionCode = region.code;
+      const upcoming = await getUpcoming(regionCode);
+      const items = await Promise.all(
+        upcoming.slice(0, 10).map(item => transformItem(item, regionCode))
+      );
 
-        const grouped = items.reduce<Record<string, DisplayItem[]>>((acc, item) => {
-          if (!acc[item.releaseDate]) {
-            acc[item.releaseDate] = [];
-          }
-          acc[item.releaseDate].push(item);
-          return acc;
-        }, {});
+      const grouped = items.reduce<Record<string, DisplayItem[]>>((acc, item) => {
+        if (!acc[item.releaseDate]) {
+          acc[item.releaseDate] = [];
+        }
+        acc[item.releaseDate].push(item);
+        return acc;
+      }, {});
 
-        const sectionList = Object.entries(grouped).map(([title, data]) => ({
-          title,
-          data
-        }));
+      const sectionList = Object.entries(grouped).map(([title, data]) => ({
+        title,
+        data
+      }));
 
-        setSections(sectionList);
-      } catch (error) {
-        console.error('Error fetching upcoming data:', error);
-      } finally {
-        setLoading(false);
-      }
+      setSections(sectionList);
+    } catch (error) {
+      console.error('Error fetching upcoming data:', error);
+    } finally {
+      setLoading(false);
     }
-    fetchData();
-  }, []);
+  }, [region]);
 
-  async function transformItem(item: TrendingItem): Promise<DisplayItem> {
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [fetchData])
+  );
+
+  async function transformItem(item: TrendingItem, regionCode: string): Promise<DisplayItem> {
     const title = item.title || item.name || 'Unknown';
-    const providers = await fetchProviders(item);
+    const providers = await fetchProviders(item, regionCode);
     const releaseDate = formatReleaseDate(item.release_date || item.first_air_date);
     
     return {
@@ -86,9 +96,9 @@ const UpcomingScreen = () => {
     };
   }
 
-  async function fetchProviders(item: TrendingItem): Promise<string[]> {
+  async function fetchProviders(item: TrendingItem, regionCode: string): Promise<string[]> {
     try {
-      const data = await getWatchProviders('movie', item.id);
+      const data = await getWatchProviders('movie', item.id, regionCode);
       if (data?.flatrate) {
         return data.flatrate.map((p: WatchProvider) => p.provider_name);
       }
