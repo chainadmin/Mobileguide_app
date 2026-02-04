@@ -1,9 +1,13 @@
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../App';
 import BuzzMeter from './BuzzMeter';
 import ProviderChips from './ProviderChips';
 import { colors, borderRadius, spacing } from '../theme';
 
 type PosterCardProps = {
+  id: string;
   title: string;
   tagline: string;
   rating: string;
@@ -15,7 +19,10 @@ type PosterCardProps = {
   size?: 'large' | 'small';
 };
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 const PosterCard = ({
+  id,
   title,
   tagline,
   rating,
@@ -26,10 +33,23 @@ const PosterCard = ({
   buzz,
   size = 'large'
 }: PosterCardProps) => {
+  const navigation = useNavigation<NavigationProp>();
   const isLarge = size === 'large';
 
+  const handlePress = () => {
+    const [mediaType, tmdbId] = id.split('-');
+    navigation.navigate('TitleDetail', {
+      mediaType: mediaType as 'movie' | 'tv',
+      tmdbId: parseInt(tmdbId, 10)
+    });
+  };
+
   return (
-    <View style={[styles.card, isLarge ? styles.cardLarge : styles.cardSmall]}>
+    <TouchableOpacity 
+      style={[styles.card, isLarge ? styles.cardLarge : styles.cardSmall]}
+      onPress={handlePress}
+      activeOpacity={0.85}
+    >
       <View style={[styles.posterWrap, isLarge ? styles.posterLarge : styles.posterSmall]}>
         <Image source={{ uri: posterUrl }} style={styles.poster} />
         <View style={styles.posterOverlay} />
@@ -51,7 +71,7 @@ const PosterCard = ({
         <ProviderChips providers={providers} />
         <BuzzMeter value={buzz} />
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

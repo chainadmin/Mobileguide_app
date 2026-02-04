@@ -16,7 +16,7 @@ export type RootStackParamList = {
   Splash: undefined;
   RegionSelect: undefined;
   Tabs: undefined;
-  TitleDetail: undefined;
+  TitleDetail: { mediaType: 'movie' | 'tv'; tmdbId: number };
   Paywall: undefined;
   Settings: undefined;
 };

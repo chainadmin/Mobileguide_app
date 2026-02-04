@@ -1,81 +1,122 @@
+import { useEffect, useState } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
+import SkeletonCard from '../components/SkeletonCard';
+import { colors, spacing } from '../theme';
+import {
+  getUpcoming,
+  getWatchProviders,
+  getPosterUrl,
+  formatRating,
+  calculateBuzz,
+  TrendingItem,
+  WatchProvider
+} from '../services/tmdb';
 
-const upcomingItems = [
-  {
-    id: 'u1',
-    title: 'Neon Harbor',
-    tagline: 'A port city holds a secret under every docklight.',
-    rating: '8.0',
-    runtime: '1h 57m',
-    genre: 'Drama · Mystery',
-    posterUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
-    providers: ['Netflix'],
-    buzz: 72,
-    releaseDate: 'May 19'
-  },
-  {
-    id: 'u2',
-    title: 'Signal Noire',
-    tagline: 'Radio hosts unravel a hidden cult on air.',
-    rating: '7.8',
-    runtime: '1h 41m',
-    genre: 'Horror · Thriller',
-    posterUrl: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
-    providers: ['Shudder', 'Prime Video'],
-    buzz: 65,
-    releaseDate: 'May 19'
-  },
-  {
-    id: 'u3',
-    title: 'Golden Hour Diaries',
-    tagline: 'A chef team tours the world at sunset.',
-    rating: '8.4',
-    runtime: '52m',
-    genre: 'Travel · Food',
-    posterUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
-    providers: ['HBO Max'],
-    buzz: 78,
-    releaseDate: 'May 23'
-  },
-  {
-    id: 'u4',
-    title: 'Afterglow Street',
-    tagline: 'Skaters chase the last light of summer.',
-    rating: '7.6',
-    runtime: '1h 35m',
-    genre: 'Coming-of-age',
-    posterUrl: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?auto=format&fit=crop&w=600&q=80',
-    providers: ['Disney+'],
-    buzz: 70,
-    releaseDate: 'May 23'
-  },
-  {
-    id: 'u5',
-    title: 'Static Bloom',
-    tagline: 'A hacker collective rewrites a fashion empire.',
-    rating: '8.2',
-    runtime: '2h 09m',
-    genre: 'Drama · Tech',
-    posterUrl: 'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=600&q=80',
-    providers: ['Apple TV+'],
-    buzz: 83,
-    releaseDate: 'May 28'
-  }
-];
+type DisplayItem = {
+  id: string;
+  title: string;
+  tagline: string;
+  rating: string;
+  runtime: string;
+  genre: string;
+  posterUrl: string;
+  providers: string[];
+  buzz: number;
+  releaseDate: string;
+};
 
-const groupedItems = upcomingItems.reduce<Record<string, typeof upcomingItems>>((acc, item) => {
-  if (!acc[item.releaseDate]) {
-    acc[item.releaseDate] = [];
-  }
-  acc[item.releaseDate].push(item);
-  return acc;
-}, {});
-
-const sections = Object.entries(groupedItems).map(([title, data]) => ({ title, data }));
+type Section = {
+  title: string;
+  data: DisplayItem[];
+};
 
 const UpcomingScreen = () => {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const upcoming = await getUpcoming();
+        const items = await Promise.all(
+          upcoming.slice(0, 10).map(item => transformItem(item))
+        );
+
+        const grouped = items.reduce<Record<string, DisplayItem[]>>((acc, item) => {
+          if (!acc[item.releaseDate]) {
+            acc[item.releaseDate] = [];
+          }
+          acc[item.releaseDate].push(item);
+          return acc;
+        }, {});
+
+        const sectionList = Object.entries(grouped).map(([title, data]) => ({
+          title,
+          data
+        }));
+
+        setSections(sectionList);
+      } catch (error) {
+        console.error('Error fetching upcoming data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
+  async function transformItem(item: TrendingItem): Promise<DisplayItem> {
+    const title = item.title || item.name || 'Unknown';
+    const providers = await fetchProviders(item);
+    const releaseDate = formatReleaseDate(item.release_date || item.first_air_date);
+    
+    return {
+      id: `movie-${item.id}`,
+      title,
+      tagline: item.overview.slice(0, 60) + (item.overview.length > 60 ? '...' : ''),
+      rating: formatRating(item.vote_average),
+      runtime: 'Movie',
+      genre: 'Movie',
+      posterUrl: getPosterUrl(item.poster_path),
+      providers: providers.slice(0, 3),
+      buzz: calculateBuzz(item.vote_average),
+      releaseDate
+    };
+  }
+
+  async function fetchProviders(item: TrendingItem): Promise<string[]> {
+    try {
+      const data = await getWatchProviders('movie', item.id);
+      if (data?.flatrate) {
+        return data.flatrate.map((p: WatchProvider) => p.provider_name);
+      }
+      return [];
+    } catch {
+      return [];
+    }
+  }
+
+  function formatReleaseDate(dateStr?: string): string {
+    if (!dateStr) return 'TBA';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  if (loading) {
+    return (
+      <View style={styles.screen}>
+        <View style={styles.container}>
+          <SectionHeader title="UPCOMING" subtitle="Save the dates for these releases." />
+          <SkeletonCard size="small" />
+          <SkeletonCard size="small" />
+          <SkeletonCard size="small" />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <SectionList
@@ -100,23 +141,23 @@ const UpcomingScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#0c0d12'
+    backgroundColor: colors.background
   },
   container: {
-    padding: 20,
+    padding: spacing.lg,
     paddingBottom: 40
   },
   header: {
-    marginBottom: 12
+    marginBottom: spacing.sm
   },
   dateHeader: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    marginBottom: 12,
-    marginTop: 12
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm
   }
 });
 
