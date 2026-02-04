@@ -1,0 +1,293 @@
+The habit-forming hook (what we’re building toward)
+
+Your “daily open” loop will come from three things:
+
+Buzz Feed: “Trending near you” powered by real user activity (clicks/saves)
+
+Drop Alerts: watchlist notifications when something drops (Pro feature)
+
+Daily Digest: “Today’s Top 10” + “2 New Drops” (free once/day push, Pro gets custom alerts)
+
+That’s what makes it a habit app instead of a utility.
+
+Repo structure (target)
+
+/apps/mobile → Expo app
+
+/apps/api → Node/Express backend
+
+/db/migrations → SQL migrations
+
+README.md → local + Railway steps
+
+STEP 0 — Prep (you do this once)
+
+✅ Create a fresh GitHub repo (game repo separate)
+Name idea: streamguide-mobile
+
+✅ Add these secrets/env later:
+
+TMDB_API_KEY
+
+DATABASE_URL
+
+CRON_KEY
+
+STEP 1 — Generate project skeleton (Expo + API + DB)
+
+Codex Prompt 1 (paste this exactly):
+
+Create a monorepo with:
+- apps/mobile: Expo React Native app (TypeScript), React Navigation (bottom tabs)
+- apps/api: Node.js + Express (TypeScript), pg for Postgres
+- db/migrations: SQL migration files
+Add package scripts at root to run mobile and api.
+
+Mobile screens (empty but navigable):
+- Splash
+- RegionSelect
+- Tabs: Trending, Upcoming, Watchlist
+- TitleDetail
+- Paywall
+- Settings
+
+API endpoints (stub returning mock JSON):
+- GET /health
+- GET /api/trending?region=US
+- GET /api/buzz?region=US
+- GET /api/upcoming?region=US
+- GET /api/title/:mediaType/:tmdbId?region=US
+- GET /api/watchlist?guestId=...
+- POST /api/watchlist/add
+- POST /api/watchlist/remove
+- POST /api/events
+- POST /api/admin/refresh?key=...
+
+Add README with local run steps.
+
+
+What you should see after Step 1:
+
+Expo app opens and navigates between screens
+
+API starts and returns mock data without crashing
+
+STEP 2 — Unique design system (make it not generic)
+
+This is where we make it feel like “a real product.”
+
+Codex Prompt 2:
+
+Implement a unique UI theme for the Expo app:
+- Dark “neon magazine” style
+- Big rounded cards with posters
+- Provider chips as pill badges in a horizontal row
+- A Buzz meter on cards (small bar + label “Buzz”)
+- A “Tonight” header on Trending screen
+
+Create reusable components:
+- PosterCard
+- ProviderChipsRow
+- BuzzMeter
+- SectionHeader
+
+Trending screen layout:
+1) TONIGHT 🔥 (Trending Today list)
+2) TRENDING NEAR YOU (Buzz list)
+
+Upcoming screen:
+- Group by date with compact rows
+
+Watchlist screen:
+- Shows “(x/10)” for Free users
+
+Add skeleton loaders and empty-state UI that looks polished.
+No real data integration yet; still use mock API responses.
+
+
+What you should see after Step 2:
+
+App looks unique (dark + chips + buzz bar)
+
+Trending has two sections
+
+Empty states look “designed,” not blank
+
+STEP 3 — Real TMDB integration + caching (backend)
+
+Now we replace mock API results.
+
+Codex Prompt 3:
+
+Replace mock API data with real TMDB integration in apps/api:
+- Read TMDB_API_KEY from env
+- Implement services:
+  - fetchTrending(region): trending movies + tv (daily)
+  - fetchDetails(mediaType, tmdbId, region)
+  - fetchProviders(mediaType, tmdbId, region) best-effort
+  - fetchUpcoming(region): upcoming movies + upcoming tv (best-effort)
+- Add caching in Postgres:
+  - titles
+  - trending_cache
+  - upcoming_cache
+  - availability
+- Add migrations in db/migrations and a simple migration runner script.
+- /api/admin/refresh?key=CRON_KEY refreshes caches for regions US, CA, GB, AU.
+- GET endpoints read from DB caches (not TMDB live).
+Handle missing providers/posters gracefully.
+Update README with exact env vars and commands.
+
+
+What you should see after Step 3:
+
+Hitting /api/admin/refresh?key=... populates DB
+
+/api/trending?region=US returns real titles + posters
+
+App shows real trending/upcoming
+
+STEP 4 — “Buzz” system (habit hook)
+
+Now we add “people are talking about this” for real.
+
+Codex Prompt 4:
+
+Implement anonymous Buzz tracking:
+- On TitleDetail open, mobile calls POST /api/events with eventType=view_title
+- On watchlist add, mobile calls POST /api/events with eventType=watchlist_add
+
+DB:
+- events table
+- buzz_cache table
+
+In /api/admin/refresh:
+- compute buzz_cache per region for last 24 hours with decay:
+  - view_title weight 1
+  - watchlist_add weight 4
+  - time decay: last 6h = 1.0x, 6–24h = 0.5x
+- GET /api/buzz?region=XX returns top buzz titles with score
+- GET /api/trending returns blended list:
+  - base TMDB trending rank
+  - boost with buzz score
+Return fields: buzzScore, isBuzzing boolean.
+Update Trending UI to show “Buzzing” tag when isBuzzing=true.
+Add Settings toggle “Share anonymous usage analytics” (default on). If off, mobile does not send events.
+
+
+What you should see after Step 4:
+
+Your own activity changes “Trending Near You”
+
+“Buzzing” tags appear
+
+App feels alive (this is the TikTok vibe without TikTok data)
+
+STEP 5 — Watchlist + habit loop
+
+Codex Prompt 5:
+
+Implement watchlist fully:
+- guestId stored in AsyncStorage (UUID generated once)
+- Watchlist list screen pulls from backend
+- Free cap = 10 items; exceeding triggers paywall
+- Add a “Daily Digest” section at top of Trending:
+  - “Top 10 Today”
+  - “New this week”
+  - “2 drops today” (based on upcoming)
+Cache daily digest in backend during refresh.
+
+Add a “Streak” mechanic:
+- Track opens per day locally (no account)
+- Show “Streak: X days” on Trending header
+- Award a cosmetic badge (free) after 3/7/14 days
+No gamey coins, just clean motivation.
+
+
+What you should see after Step 5:
+
+Watchlist works
+
+Streak motivates daily opens
+
+Digest makes the home screen feel fresh daily
+
+STEP 6 — Monetization (Pro without login)
+
+We’ll keep it store-safe and simple.
+
+Codex Prompt 6:
+
+Add Pro monetization structure (no login):
+- Implement an Entitlements module:
+  - isPro(): boolean
+  - setPro(bool)
+  - restorePurchases(): placeholder
+- For now, simulate Pro via a dev toggle in Settings (DEV ONLY) so we can test flows.
+
+Pro unlocks:
+- Unlimited watchlist
+- Platform filters
+- No ads (ads can be stubbed)
+- Release alerts (stub UI + backend hooks)
+
+Paywall screen:
+- Copy that sells:
+  - “Unlimited Watchlist”
+  - “Drop Alerts”
+  - “Filter by your services”
+  - “No Ads”
+- Buttons: Monthly, Yearly, Restore Purchases
+
+Add “Restore Purchases” UI and wiring placeholder.
+Document in README how to later plug in real Expo IAP library.
+
+
+What you should see after Step 6:
+
+Paywall works
+
+Pro gates features without login
+
+You can test Pro flows immediately (dev toggle)
+
+STEP 7 — Push notifications (habit + Pro)
+
+This is what really drives daily opens.
+
+Codex Prompt 7:
+
+Add notifications support (Expo):
+- Request push permission
+- Store pushToken on backend with guestId + region
+- Backend job (during refresh) checks:
+  - upcoming items in next 24h
+  - if user watchlist matches upcoming release, queue notification
+- Implement a simple notification queue table and a sender stub (log to console).
+Add a “Daily Digest Notification” for all users (optional toggle).
+Pro users can enable “Watchlist Alerts”.
+
+
+You can ship with daily digest pushes first, then wire full watchlist alerts next.
+
+Positioning so you don’t look like JustWatch
+
+Use this framing everywhere:
+
+Store subtitle/hero line
+
+“What’s blowing up tonight — by country.”
+
+Key feature bullets
+
+“Trending today + trending near you”
+
+“Upcoming drops this week”
+
+“Watchlist alerts (Pro)”
+
+“Pick your country, pick your services”
+
+Don’t say
+
+“Find where to watch everything”
+That screams commodity.

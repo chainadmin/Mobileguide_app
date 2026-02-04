@@ -1,6 +1,7 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { colors } from './src/theme';
 
 import PaywallScreen from './src/screens/PaywallScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
@@ -20,12 +21,41 @@ export type RootStackParamList = {
   Settings: undefined;
 };
 
+const darkTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: colors.background,
+    card: colors.background,
+    text: colors.textPrimary,
+    border: colors.tabBarBorder,
+    primary: colors.accent
+  }
+};
+
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 const Tabs = () => {
   return (
-    <Tab.Navigator>
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: colors.tabBarBackground,
+          borderTopColor: colors.tabBarBorder,
+          paddingTop: 8,
+          height: 60
+        },
+        tabBarActiveTintColor: colors.accent,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          letterSpacing: 0.5
+        }
+      }}
+    >
       <Tab.Screen name="Trending" component={TrendingScreen} />
       <Tab.Screen name="Upcoming" component={UpcomingScreen} />
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
@@ -35,22 +65,45 @@ const Tabs = () => {
 
 const App = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator>
+    <NavigationContainer theme={darkTheme}>
+      <Stack.Navigator
+        screenOptions={{
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { fontWeight: '700' },
+          contentStyle: { backgroundColor: colors.background }
+        }}
+      >
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="RegionSelect" component={RegionSelectScreen} />
+        <Stack.Screen
+          name="RegionSelect"
+          component={RegionSelectScreen}
+          options={{ title: 'Select Region' }}
+        />
         <Stack.Screen
           name="Tabs"
           component={Tabs}
           options={{ headerShown: false }}
         />
-        <Stack.Screen name="TitleDetail" component={TitleDetailScreen} />
-        <Stack.Screen name="Paywall" component={PaywallScreen} />
-        <Stack.Screen name="Settings" component={SettingsScreen} />
+        <Stack.Screen
+          name="TitleDetail"
+          component={TitleDetailScreen}
+          options={{ title: 'Details' }}
+        />
+        <Stack.Screen
+          name="Paywall"
+          component={PaywallScreen}
+          options={{ title: 'Go Pro', presentation: 'modal' }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Settings' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
