@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearRegionalCache } from '../services/cache';
 
 export type Region = {
   code: string;
@@ -72,6 +73,7 @@ export function RegionProvider({ children }: { children: ReactNode }) {
 
   async function setRegion(newRegion: Region) {
     try {
+      await clearRegionalCache();
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newRegion));
       setRegionState(newRegion);
     } catch (error) {

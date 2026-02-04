@@ -48,3 +48,16 @@ export async function clearCache(): Promise<void> {
     console.error('Cache clear error:', error);
   }
 }
+
+export async function clearRegionalCache(): Promise<void> {
+  try {
+    const keys = await AsyncStorage.getAllKeys();
+    const cacheKeys = keys.filter(k => 
+      k.startsWith('@buzzreel_cache_regional_') || 
+      k.startsWith('@buzzreel_cache_upcoming_')
+    );
+    await AsyncStorage.multiRemove(cacheKeys);
+  } catch (error) {
+    console.error('Cache clear error:', error);
+  }
+}

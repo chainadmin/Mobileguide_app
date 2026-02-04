@@ -83,23 +83,59 @@ export async function getTrending(
 }
 
 export async function getPopularMovies(region: string = 'US'): Promise<TrendingItem[]> {
-  const data = await fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
-    watch_region: region,
-    with_watch_monetization_types: 'flatrate|free|ads',
-    sort_by: 'popularity.desc',
-    'vote_count.gte': '50'
-  });
-  return data.results.map(item => ({ ...item, media_type: 'movie' as MediaType }));
+  const [streamable, local] = await Promise.all([
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
+      watch_region: region,
+      with_watch_monetization_types: 'flatrate|free|ads',
+      sort_by: 'popularity.desc',
+      'vote_count.gte': '20'
+    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
+      with_origin_country: region,
+      sort_by: 'popularity.desc',
+      'vote_count.gte': '10'
+    })
+  ]);
+  
+  const seen = new Set<number>();
+  const combined: TrendingItem[] = [];
+  
+  for (const item of [...streamable.results, ...local.results]) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      combined.push({ ...item, media_type: 'movie' as MediaType });
+    }
+  }
+  
+  return combined.sort((a, b) => b.vote_average - a.vote_average).slice(0, 20);
 }
 
 export async function getPopularTV(region: string = 'US'): Promise<TrendingItem[]> {
-  const data = await fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
-    watch_region: region,
-    with_watch_monetization_types: 'flatrate|free|ads',
-    sort_by: 'popularity.desc',
-    'vote_count.gte': '50'
-  });
-  return data.results.map(item => ({ ...item, media_type: 'tv' as MediaType }));
+  const [streamable, local] = await Promise.all([
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
+      watch_region: region,
+      with_watch_monetization_types: 'flatrate|free|ads',
+      sort_by: 'popularity.desc',
+      'vote_count.gte': '20'
+    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
+      with_origin_country: region,
+      sort_by: 'popularity.desc',
+      'vote_count.gte': '10'
+    })
+  ]);
+  
+  const seen = new Set<number>();
+  const combined: TrendingItem[] = [];
+  
+  for (const item of [...streamable.results, ...local.results]) {
+    if (!seen.has(item.id)) {
+      seen.add(item.id);
+      combined.push({ ...item, media_type: 'tv' as MediaType });
+    }
+  }
+  
+  return combined.sort((a, b) => b.vote_average - a.vote_average).slice(0, 20);
 }
 
 export async function getRegionalContent(region: string = 'US'): Promise<TrendingItem[]> {
