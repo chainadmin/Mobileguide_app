@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../../App';
 import { colors, spacing, borderRadius } from '../theme';
 import BuzzMeter from '../components/BuzzMeter';
 import ProviderChips from '../components/ProviderChips';
+import { useRegion } from '../context/RegionContext';
 import {
   getMovieDetails,
   getTVDetails,
@@ -18,13 +19,14 @@ import {
   TVDetails,
   WatchProvider
 } from '../services/tmdb';
-import { getBuzzCount, voteBuzz } from '../services/api';
+import { recordView } from '../services/api';
 
 type TitleDetailRouteProp = RouteProp<RootStackParamList, 'TitleDetail'>;
 
 const TitleDetailScreen = () => {
   const route = useRoute<TitleDetailRouteProp>();
   const { mediaType, tmdbId } = route.params;
+  const { region } = useRegion();
 
   const [details, setDetails] = useState<MovieDetails | TVDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
@@ -34,13 +36,14 @@ const TitleDetailScreen = () => {
   useEffect(() => {
     async function fetchDetails() {
       try {
-        const [detailsData, providersData, buzzData] = await Promise.all([
+        const regionCode = region?.code || 'US';
+        const [detailsData, providersData, viewCount] = await Promise.all([
           mediaType === 'movie' ? getMovieDetails(tmdbId) : getTVDetails(tmdbId),
-          getWatchProviders(mediaType, tmdbId),
-          getBuzzCount(mediaType, tmdbId)
+          getWatchProviders(mediaType, tmdbId, regionCode),
+          recordView(regionCode, mediaType, tmdbId)
         ]);
         setDetails(detailsData);
-        setBuzzCount(buzzData);
+        setBuzzCount(viewCount);
         if (providersData?.flatrate) {
           setProviders(providersData.flatrate.map((p: WatchProvider) => p.provider_name));
         }
@@ -51,12 +54,7 @@ const TitleDetailScreen = () => {
       }
     }
     fetchDetails();
-  }, [mediaType, tmdbId]);
-
-  const handleBuzzVote = async () => {
-    const newCount = await voteBuzz(mediaType, tmdbId);
-    setBuzzCount(newCount);
-  };
+  }, [mediaType, tmdbId, region]);
 
   if (loading || !details) {
     return (
@@ -111,7 +109,7 @@ const TitleDetailScreen = () => {
           ))}
         </View>
 
-        <BuzzMeter value={buzzCount} onPress={handleBuzzVote} showVoteHint={true} />
+        <BuzzMeter value={buzzCount} />
 
         <Text style={styles.sectionTitle}>WHERE TO WATCH</Text>
         {providers.length > 0 ? (

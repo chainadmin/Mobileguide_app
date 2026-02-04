@@ -1,39 +1,25 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors, spacing } from '../theme';
 
 type BuzzMeterProps = {
   value: number;
-  onPress?: () => void;
-  showVoteHint?: boolean;
 };
 
-const BuzzMeter = ({ value, onPress, showVoteHint = false }: BuzzMeterProps) => {
-  const displayValue = Math.min(100, Math.max(0, value));
+const BuzzMeter = ({ value }: BuzzMeterProps) => {
+  const fillWidth = Math.min(100, value);
 
-  const content = (
+  return (
     <View style={styles.container}>
       <View style={styles.labelRow}>
-        <Text style={styles.label}>BUZZ METER</Text>
-        <Text style={styles.value}>{displayValue}</Text>
+        <Text style={styles.label}>REGIONAL BUZZ</Text>
+        <Text style={styles.value}>{value} views</Text>
       </View>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${Math.min(displayValue, 100)}%` }]} />
+        <View style={[styles.fill, { width: `${fillWidth}%` }]} />
       </View>
-      {showVoteHint && (
-        <Text style={styles.hint}>Tap to buzz!</Text>
-      )}
+      <Text style={styles.hint}>Views in your region</Text>
     </View>
   );
-
-  if (onPress) {
-    return (
-      <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
-        {content}
-      </TouchableOpacity>
-    );
-  }
-
-  return content;
 };
 
 const styles = StyleSheet.create({
@@ -69,10 +55,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent
   },
   hint: {
-    color: colors.accent,
+    color: colors.textMuted,
     fontSize: 10,
-    marginTop: 4,
-    textAlign: 'center'
+    marginTop: 4
   }
 });
 
