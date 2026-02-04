@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './src/theme';
 import { RegionProvider } from './src/context/RegionContext';
+import { WatchlistProvider } from './src/context/WatchlistContext';
 
 import PaywallScreen from './src/screens/PaywallScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
@@ -67,7 +68,8 @@ const Tabs = () => {
 const App = () => {
   return (
     <RegionProvider>
-      <NavigationContainer theme={darkTheme}>
+      <WatchlistProvider>
+        <NavigationContainer theme={darkTheme}>
         <Stack.Navigator
           screenOptions={{
             headerStyle: { backgroundColor: colors.background },
@@ -107,7 +109,8 @@ const App = () => {
             options={{ title: 'Settings' }}
           />
         </Stack.Navigator>
-      </NavigationContainer>
+        </NavigationContainer>
+      </WatchlistProvider>
     </RegionProvider>
   );
 };

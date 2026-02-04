@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../App';
@@ -7,6 +7,7 @@ import { colors, spacing, borderRadius } from '../theme';
 import BuzzMeter from '../components/BuzzMeter';
 import ProviderChips from '../components/ProviderChips';
 import { useRegion } from '../context/RegionContext';
+import { useWatchlist } from '../context/WatchlistContext';
 import {
   getMovieDetails,
   getTVDetails,
@@ -27,11 +28,17 @@ const TitleDetailScreen = () => {
   const route = useRoute<TitleDetailRouteProp>();
   const { mediaType, tmdbId } = route.params;
   const { region } = useRegion();
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist, isFull } = useWatchlist();
 
   const [details, setDetails] = useState<MovieDetails | TVDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
   const [buzzCount, setBuzzCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [inWatchlist, setInWatchlist] = useState(false);
+
+  useEffect(() => {
+    setInWatchlist(isInWatchlist(tmdbId, mediaType));
+  }, [tmdbId, mediaType, isInWatchlist]);
 
   useEffect(() => {
     async function fetchDetails() {
@@ -55,6 +62,31 @@ const TitleDetailScreen = () => {
     }
     fetchDetails();
   }, [mediaType, tmdbId, region]);
+
+  const handleWatchlistToggle = async () => {
+    if (!details) return;
+    
+    const title = 'title' in details ? details.title : details.name;
+    
+    if (inWatchlist) {
+      await removeFromWatchlist(tmdbId, mediaType);
+      setInWatchlist(false);
+    } else {
+      if (isFull) {
+        Alert.alert('Watchlist Full', 'You can save up to 10 titles. Remove one to add more.');
+        return;
+      }
+      const success = await addToWatchlist({
+        id: tmdbId,
+        mediaType,
+        title,
+        posterPath: details.poster_path
+      });
+      if (success) {
+        setInWatchlist(true);
+      }
+    }
+  };
 
   if (loading || !details) {
     return (
@@ -108,6 +140,16 @@ const TitleDetailScreen = () => {
             </View>
           ))}
         </View>
+
+        <TouchableOpacity
+          style={[styles.watchlistButton, inWatchlist && styles.watchlistButtonActive]}
+          onPress={handleWatchlistToggle}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.watchlistButtonText, inWatchlist && styles.watchlistButtonTextActive]}>
+            {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+          </Text>
+        </TouchableOpacity>
 
         <BuzzMeter value={buzzCount} />
 
@@ -236,6 +278,26 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14,
     lineHeight: 22
+  },
+  watchlistButton: {
+    backgroundColor: colors.accent,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.md,
+    alignItems: 'center',
+    marginTop: spacing.lg
+  },
+  watchlistButtonActive: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.accent
+  },
+  watchlistButtonText: {
+    color: colors.background,
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  watchlistButtonTextActive: {
+    color: colors.accent
   }
 });
 

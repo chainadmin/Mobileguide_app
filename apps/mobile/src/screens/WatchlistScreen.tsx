@@ -1,47 +1,36 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback } from 'react';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../App';
 import EmptyState from '../components/EmptyState';
-import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
+import { colors, spacing, borderRadius } from '../theme';
+import { useWatchlist } from '../context/WatchlistContext';
+import { getPosterUrl } from '../services/tmdb';
 
-const watchlistItems = [
-  {
-    id: 'w1',
-    title: 'Gilded Frequency',
-    tagline: 'An audio engineer rescues a lost opera.',
-    rating: '8.3',
-    runtime: '1h 52m',
-    genre: 'Music · Drama',
-    posterUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=600&q=80',
-    providers: ['Prime Video', 'Paramount+'],
-    buzz: 79
-  },
-  {
-    id: 'w2',
-    title: 'City of Comets',
-    tagline: 'A skyline photographer documents impossible lights.',
-    rating: '7.7',
-    runtime: '1h 38m',
-    genre: 'Adventure · Drama',
-    posterUrl: 'https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80',
-    providers: ['Disney+'],
-    buzz: 68
-  },
-  {
-    id: 'w3',
-    title: 'Studio X',
-    tagline: 'A design team builds a city in an abandoned mall.',
-    rating: '8.8',
-    runtime: '2h 02m',
-    genre: 'Drama · Sci-Fi',
-    posterUrl: 'https://images.unsplash.com/photo-1497032628192-86f99bcd76bc?auto=format&fit=crop&w=600&q=80',
-    providers: ['Max'],
-    buzz: 88
-  }
-];
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const WatchlistScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
+  const { watchlist, removeFromWatchlist } = useWatchlist();
   const maxSlots = 10;
-  const count = watchlistItems.length;
+
+  useFocusEffect(
+    useCallback(() => {
+    }, [])
+  );
+
+  const handlePress = (item: typeof watchlist[0]) => {
+    navigation.navigate('TitleDetail', {
+      mediaType: item.mediaType,
+      tmdbId: item.id
+    });
+  };
+
+  const handleRemove = async (item: typeof watchlist[0]) => {
+    await removeFromWatchlist(item.id, item.mediaType);
+  };
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
@@ -49,17 +38,40 @@ const WatchlistScreen = () => {
       <View style={styles.countRow}>
         <Text style={styles.countLabel}>Free plan</Text>
         <View style={styles.countPill}>
-          <Text style={styles.countText}>{count}/{maxSlots}</Text>
+          <Text style={styles.countText}>{watchlist.length}/{maxSlots}</Text>
         </View>
       </View>
 
-      {count === 0 ? (
+      {watchlist.length === 0 ? (
         <EmptyState
           title="Your watchlist is empty"
           message="Save titles to keep track of what to watch next."
         />
       ) : (
-        watchlistItems.map((item) => <PosterCard key={item.id} {...item} size="small" />)
+        watchlist.map((item) => (
+          <TouchableOpacity
+            key={`${item.mediaType}-${item.id}`}
+            style={styles.card}
+            onPress={() => handlePress(item)}
+            activeOpacity={0.8}
+          >
+            <Image
+              source={{ uri: getPosterUrl(item.posterPath, 'w185') }}
+              style={styles.poster}
+            />
+            <View style={styles.cardContent}>
+              <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+              <Text style={styles.type}>{item.mediaType === 'movie' ? 'Movie' : 'TV Series'}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => handleRemove(item)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Text style={styles.removeText}>Remove</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        ))
       )}
     </ScrollView>
   );
@@ -68,35 +80,73 @@ const WatchlistScreen = () => {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#0c0d12'
+    backgroundColor: colors.background
   },
   container: {
-    padding: 20,
+    padding: spacing.lg,
     paddingBottom: 40
   },
   countRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20
+    marginBottom: spacing.lg
   },
   countLabel: {
-    color: '#9ea4b5',
+    color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '600'
   },
   countPill: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#1a1c24',
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)'
+    borderColor: colors.border
   },
   countText: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
+  },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  poster: {
+    width: 60,
+    height: 90,
+    borderRadius: borderRadius.sm
+  },
+  cardContent: {
+    flex: 1,
+    marginLeft: spacing.md
+  },
+  title: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600'
+  },
+  type: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginTop: 4
+  },
+  removeButton: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs
+  },
+  removeText: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '600'
   }
 });
 
