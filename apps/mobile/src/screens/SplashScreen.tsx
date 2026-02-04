@@ -4,18 +4,26 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { colors } from '../theme';
+import { useRegion } from '../context/RegionContext';
 
 type SplashNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 const SplashScreen = () => {
   const navigation = useNavigation<SplashNavigationProp>();
+  const { region, isLoading } = useRegion();
 
   useEffect(() => {
+    if (isLoading) return;
+    
     const timer = setTimeout(() => {
-      navigation.replace('Tabs');
+      if (region) {
+        navigation.replace('Tabs');
+      } else {
+        navigation.replace('RegionSelect');
+      }
     }, 2000);
     return () => clearTimeout(timer);
-  }, [navigation]);
+  }, [navigation, region, isLoading]);
 
   return (
     <View style={styles.container}>

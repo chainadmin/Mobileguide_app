@@ -15,7 +15,11 @@ const RegionSelectScreen = () => {
     const selected = REGIONS.find(r => r.code === regionCode);
     if (selected) {
       await setRegion(selected);
-      navigation.goBack();
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace('Tabs');
+      }
     }
   };
 

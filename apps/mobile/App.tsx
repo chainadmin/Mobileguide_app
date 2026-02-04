@@ -69,43 +69,43 @@ const App = () => {
     <RegionProvider>
       <NavigationContainer theme={darkTheme}>
         <Stack.Navigator
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: { fontWeight: '700' },
-          contentStyle: { backgroundColor: colors.background }
-        }}
-      >
-        <Stack.Screen
-          name="Splash"
-          component={SplashScreen}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="RegionSelect"
-          component={RegionSelectScreen}
-          options={{ title: 'Select Region' }}
-        />
-        <Stack.Screen
-          name="Tabs"
-          component={Tabs}
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="TitleDetail"
-          component={TitleDetailScreen}
-          options={{ title: 'Details' }}
-        />
-        <Stack.Screen
-          name="Paywall"
-          component={PaywallScreen}
-          options={{ title: 'Go Pro', presentation: 'modal' }}
-        />
-        <Stack.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ title: 'Settings' }}
-        />
+          screenOptions={{
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.textPrimary,
+            headerTitleStyle: { fontWeight: '700' },
+            contentStyle: { backgroundColor: colors.background }
+          }}
+        >
+          <Stack.Screen
+            name="Splash"
+            component={SplashScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="RegionSelect"
+            component={RegionSelectScreen}
+            options={{ title: 'Select Region' }}
+          />
+          <Stack.Screen
+            name="Tabs"
+            component={Tabs}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="TitleDetail"
+            component={TitleDetailScreen}
+            options={{ title: 'Details' }}
+          />
+          <Stack.Screen
+            name="Paywall"
+            component={PaywallScreen}
+            options={{ title: 'Go Pro', presentation: 'modal' }}
+          />
+          <Stack.Screen
+            name="Settings"
+            component={SettingsScreen}
+            options={{ title: 'Settings' }}
+          />
         </Stack.Navigator>
       </NavigationContainer>
     </RegionProvider>
