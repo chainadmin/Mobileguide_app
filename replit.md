@@ -71,6 +71,14 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data), filtered by user's region
 
 ## Recent Changes
+- **Feb 2026**: Added subscription paywall and enhanced UI features
+  - PaywallScreen with Monthly ($1.99), Yearly ($9.99), and Lifetime ($19.99) tiers
+  - Daily Digest horizontal strip on Trending showing upcoming movies
+  - Upcoming screen grouped by date with "Drops Today" callouts and 14-day filter
+  - Watchlist shows Pro/Free plan distinction with upgrade prompts and limit banners
+  - Settings includes subscription management, restore purchases, platform filters (Pro), and Credits section
+  - Privacy/Terms links point to buzzreel.app (placeholder URLs)
+  - Note: isPro is hardcoded to false pending subscription context implementation
 - **Feb 2026**: Implemented regional buzz tracking system
   - Users select their region on first launch
   - Buzz counts track how many times a title was viewed in each region
