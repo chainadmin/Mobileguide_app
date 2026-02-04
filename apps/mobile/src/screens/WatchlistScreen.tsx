@@ -15,6 +15,7 @@ const WatchlistScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { watchlist, removeFromWatchlist } = useWatchlist();
   const maxSlots = 10;
+  const isPro = false;
 
   useFocusEffect(
     useCallback(() => {
@@ -32,15 +33,45 @@ const WatchlistScreen = () => {
     await removeFromWatchlist(item.id, item.mediaType);
   };
 
+  const handleUpgrade = () => {
+    navigation.navigate('Paywall');
+  };
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
-      <View style={styles.countRow}>
-        <Text style={styles.countLabel}>Free plan</Text>
-        <View style={styles.countPill}>
-          <Text style={styles.countText}>{watchlist.length}/{maxSlots}</Text>
+      
+      <View style={styles.planCard}>
+        <View style={styles.planInfo}>
+          <Text style={styles.planLabel}>{isPro ? 'Pro Plan' : 'Free Plan'}</Text>
+          <View style={styles.countPill}>
+            <Text style={styles.countText}>
+              {isPro ? `${watchlist.length} saved` : `${watchlist.length}/${maxSlots}`}
+            </Text>
+          </View>
         </View>
+        {!isPro && (
+          <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade} activeOpacity={0.8}>
+            <Text style={styles.upgradeText}>Unlock Unlimited</Text>
+          </TouchableOpacity>
+        )}
       </View>
+
+      {!isPro && watchlist.length >= maxSlots && (
+        <View style={styles.limitBanner}>
+          <Text style={styles.limitText}>You've reached the free limit</Text>
+          <TouchableOpacity onPress={handleUpgrade}>
+            <Text style={styles.limitLink}>Upgrade to Pro →</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {isPro && (
+        <View style={styles.proBanner}>
+          <Text style={styles.proIcon}>🔔</Text>
+          <Text style={styles.proBannerText}>Release alerts are enabled</Text>
+        </View>
+      )}
 
       {watchlist.length === 0 ? (
         <EmptyState
@@ -86,29 +117,85 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 40
   },
-  countRow: {
+  planCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.border
   },
-  countLabel: {
+  planInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm
+  },
+  planLabel: {
     color: colors.textSecondary,
     fontSize: 13,
     fontWeight: '600'
   },
   countPill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.chipBackground,
     borderWidth: 1,
-    borderColor: colors.border
+    borderColor: colors.chipBorder
   },
   countText: {
     color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
+  },
+  upgradeButton: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full
+  },
+  upgradeText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  limitBanner: {
+    backgroundColor: colors.accent + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  limitText: {
+    color: colors.textSecondary,
+    fontSize: 13
+  },
+  limitLink: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  proBanner: {
+    backgroundColor: colors.accent + '15',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm
+  },
+  proIcon: {
+    fontSize: 16
+  },
+  proBannerText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '600'
   },
   card: {
     flexDirection: 'row',

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
@@ -10,6 +10,7 @@ import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import {
   getRegionalContent,
+  getUpcoming,
   getWatchProviders,
   getPosterUrl,
   formatRating,
@@ -33,11 +34,19 @@ type DisplayItem = {
   buzz: number;
 };
 
+type DigestItem = {
+  id: number;
+  title: string;
+  posterUrl: string;
+  mediaType: 'movie' | 'tv';
+};
+
 const TrendingScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
   const [tonightPicks, setTonightPicks] = useState<DisplayItem[]>([]);
   const [trendingNearYou, setTrendingNearYou] = useState<DisplayItem[]>([]);
+  const [dailyDigest, setDailyDigest] = useState<DigestItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -47,12 +56,21 @@ const TrendingScreen = () => {
       setLoading(true);
       const regionCode = region.code;
       
-      const [regionalContent, topBuzz] = await Promise.all([
+      const [regionalContent, topBuzz, upcoming] = await Promise.all([
         getRegionalContent(regionCode),
-        getTopBuzz(regionCode)
+        getTopBuzz(regionCode),
+        getUpcoming(regionCode)
       ]);
 
       const buzzMap = new Map(topBuzz.map(b => [`${b.media_type}-${b.tmdb_id}`, b.view_count]));
+
+      const digestItems: DigestItem[] = upcoming.slice(0, 8).map(item => ({
+        id: item.id,
+        title: item.title || item.name || '',
+        posterUrl: getPosterUrl(item.poster_path, 'w185'),
+        mediaType: 'movie'
+      }));
+      setDailyDigest(digestItems);
 
       const tonightItems = await Promise.all(
         regionalContent.slice(0, 2).map(item => transformItem(item, buzzMap, regionCode))
@@ -150,6 +168,29 @@ const TrendingScreen = () => {
           ))
         )}
       </View>
+
+      <SectionHeader title="DAILY DIGEST" subtitle="Coming soon to your screens." />
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.digestScroll}
+        contentContainerStyle={styles.digestContainer}
+      >
+        {dailyDigest.map((item) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.digestItem}
+            onPress={() => navigation.navigate('TitleDetail', { 
+              mediaType: item.mediaType, 
+              tmdbId: item.id 
+            })}
+            activeOpacity={0.8}
+          >
+            <Image source={{ uri: item.posterUrl }} style={styles.digestPoster} />
+            <Text style={styles.digestTitle} numberOfLines={2}>{item.title}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
     </ScrollView>
   );
 };
@@ -187,6 +228,29 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 28
+  },
+  digestScroll: {
+    marginHorizontal: -spacing.lg,
+    marginBottom: spacing.xl
+  },
+  digestContainer: {
+    paddingHorizontal: spacing.lg,
+    gap: spacing.md
+  },
+  digestItem: {
+    width: 100
+  },
+  digestPoster: {
+    width: 100,
+    height: 150,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.skeleton
+  },
+  digestTitle: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: spacing.xs,
+    textAlign: 'center'
   }
 });
 
