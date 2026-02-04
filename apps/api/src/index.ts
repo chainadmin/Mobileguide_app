@@ -12,6 +12,16 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'buzzreel-api' });
 });
 
+app.get('/setup-db', async (_req, res) => {
+  try {
+    await initDb();
+    res.json({ status: 'ok', message: 'Database tables created successfully' });
+  } catch (error) {
+    console.error('Error setting up database:', error);
+    res.status(500).json({ error: 'Failed to setup database', details: String(error) });
+  }
+});
+
 app.get('/api/buzz/:region/:mediaType/:tmdbId', async (req, res) => {
   try {
     const { region, mediaType, tmdbId } = req.params;
