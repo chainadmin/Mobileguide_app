@@ -58,6 +58,16 @@ This approach keeps frontend and backend code in a single repository while maint
 - **pg**: PostgreSQL client for Node.js
 - **tsx**: TypeScript execution and hot-reloading for development
 
-### Planned/Implied Integrations
-- **TMDB (The Movie Database)**: API endpoint structure suggests integration with TMDB for movie/TV metadata (mediaType, tmdbId parameters)
-- **Streaming Provider Data**: UI components reference multiple streaming services (Netflix, Hulu, Prime Video, etc.) indicating future provider availability integration
+### External Integrations
+- **TMDB (The Movie Database)**: Live integration with TMDB API for trending, upcoming, and title details
+  - Uses EXPO_PUBLIC_TMDB_API_KEY environment variable (bearer token)
+  - Service file: `src/services/tmdb.ts`
+  - Attribution displayed in Settings screen as required by TMDB terms
+- **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data)
+
+## Recent Changes
+- **Feb 2026**: Integrated TMDB API for real movie/TV data
+  - TrendingScreen and UpcomingScreen now fetch live data
+  - TitleDetailScreen shows full details with streaming providers
+  - PosterCard is tappable and navigates to detail view
+  - Settings includes TMDB attribution
