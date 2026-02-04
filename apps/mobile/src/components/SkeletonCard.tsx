@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
+import { colors, borderRadius, spacing } from '../theme';
 
 type SkeletonCardProps = {
   size?: 'large' | 'small';
@@ -54,21 +55,21 @@ const SkeletonCard = ({ size = 'large' }: SkeletonCardProps) => {
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#14151c',
-    borderRadius: 24,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)'
+    borderColor: colors.border
   },
   cardLarge: {
-    marginBottom: 20
+    marginBottom: spacing.lg
   },
   cardSmall: {
-    marginBottom: 16
+    marginBottom: spacing.md
   },
   poster: {
-    borderRadius: 18,
-    backgroundColor: '#20222c'
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.skeleton
   },
   posterLarge: {
     width: 120,
@@ -80,19 +81,19 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    marginLeft: 16
+    marginLeft: spacing.md
   },
   genreLine: {
     width: 80,
     height: 12,
-    borderRadius: 6,
-    backgroundColor: '#20222c'
+    borderRadius: borderRadius.xs,
+    backgroundColor: colors.skeleton
   },
   titleLine: {
     height: 20,
-    borderRadius: 10,
-    backgroundColor: '#20222c',
-    marginTop: 8
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.skeleton,
+    marginTop: spacing.sm
   },
   titleLarge: {
     width: '90%'
@@ -103,27 +104,27 @@ const styles = StyleSheet.create({
   taglineLine: {
     width: '70%',
     height: 12,
-    borderRadius: 6,
-    backgroundColor: '#20222c',
-    marginTop: 10
+    borderRadius: borderRadius.xs,
+    backgroundColor: colors.skeleton,
+    marginTop: spacing.sm
   },
   metaRow: {
     flexDirection: 'row',
-    marginTop: 14,
-    gap: 8
+    marginTop: spacing.md,
+    gap: spacing.sm
   },
   metaChip: {
     width: 60,
     height: 24,
-    borderRadius: 12,
-    backgroundColor: '#20222c'
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.skeleton
   },
   buzzBar: {
     width: '100%',
     height: 8,
-    borderRadius: 4,
-    backgroundColor: '#20222c',
-    marginTop: 16
+    borderRadius: borderRadius.xs,
+    backgroundColor: colors.skeleton,
+    marginTop: spacing.md
   }
 });
 

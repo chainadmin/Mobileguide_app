@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing, borderRadius } from '../theme';
 
 type EmptyStateProps = {
   title: string;
@@ -16,20 +17,20 @@ const EmptyState = ({ title, message }: EmptyStateProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
-    borderRadius: 20,
-    backgroundColor: '#161821',
+    padding: spacing.lg,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.card,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)'
+    borderColor: colors.border
   },
   title: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontSize: 18,
     fontWeight: '700',
-    marginBottom: 8
+    marginBottom: spacing.sm
   },
   message: {
-    color: '#9ea4b5',
+    color: colors.textSecondary,
     fontSize: 13,
     lineHeight: 20
   }

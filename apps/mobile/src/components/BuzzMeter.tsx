@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing } from '../theme';
 
 type BuzzMeterProps = {
   value: number;
@@ -22,35 +23,35 @@ const BuzzMeter = ({ value }: BuzzMeterProps) => {
 
 const styles = StyleSheet.create({
   container: {
-    marginTop: 12
+    marginTop: spacing.sm
   },
   labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6
+    marginBottom: spacing.xs
   },
   label: {
-    color: '#a7b0c2',
+    color: colors.textMuted,
     fontSize: 10,
     letterSpacing: 1.4,
     fontWeight: '700'
   },
   value: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
   },
   track: {
     height: 8,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: colors.border,
     overflow: 'hidden'
   },
   fill: {
     height: '100%',
     borderRadius: 999,
-    backgroundColor: '#ff7a51'
+    backgroundColor: colors.accent
   }
 });
 

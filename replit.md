@@ -23,7 +23,10 @@ This approach keeps frontend and backend code in a single repository while maint
   - Native stack navigator for modal/full-screen flows (Splash, RegionSelect, TitleDetail, Paywall, Settings)
   - Bottom tab navigator for main content tabs (Trending, Upcoming, Watchlist)
 - **Component Structure**: Reusable UI components in `src/components/` (PosterCard, BuzzMeter, ProviderChips, etc.)
-- **Styling**: React Native StyleSheet with a dark theme (dark backgrounds, light text)
+- **Styling**: React Native StyleSheet with centralized dark "neon magazine" theme
+  - Theme file: `src/theme.ts` with colors, spacing, and borderRadius constants
+  - Primary background: #0c0d12, Accent: #ff7a51 (coral orange)
+  - All components use theme constants for consistency
 - **Platform Support**: iOS, Android, and Web (via react-native-web)
 
 ### Backend Architecture

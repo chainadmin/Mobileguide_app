@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing, borderRadius } from '../theme';
 
 type ProviderChipsProps = {
   providers: string[];
@@ -20,18 +21,18 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8
+    gap: spacing.sm
   },
   chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.border,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)'
+    borderColor: colors.border
   },
   text: {
-    color: '#f2f2f2',
+    color: colors.textPrimary,
     fontSize: 11,
     fontWeight: '600',
     letterSpacing: 0.4

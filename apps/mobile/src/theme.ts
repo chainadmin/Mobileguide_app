@@ -1,7 +1,7 @@
 export const colors = {
   background: '#0c0d12',
-  cardBackground: '#14151c',
-  cardBorder: 'rgba(255,255,255,0.06)',
+  card: '#14151c',
+  border: 'rgba(255,255,255,0.06)',
   accent: '#ff7a51',
   accentDark: 'rgba(255,122,81,0.9)',
   textPrimary: '#f5f5f5',
@@ -23,8 +23,10 @@ export const spacing = {
 };
 
 export const borderRadius = {
+  xs: 6,
   sm: 12,
   md: 18,
-  lg: 24,
+  lg: 20,
+  xl: 24,
   full: 999
 };

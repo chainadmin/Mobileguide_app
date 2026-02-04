@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { colors, spacing } from '../theme';
 
 type SectionHeaderProps = {
   title: string;
@@ -22,18 +23,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
-    marginBottom: 16
+    marginBottom: spacing.md
   },
   title: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontSize: 22,
     fontWeight: '700',
     letterSpacing: 0.6,
     textTransform: 'uppercase'
   },
   subtitle: {
-    marginTop: 4,
-    color: '#9ea4b5',
+    marginTop: spacing.xs,
+    color: colors.textSecondary,
     fontSize: 13,
     letterSpacing: 0.4
   },
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     width: 42,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#ff7a51'
+    backgroundColor: colors.accent
   }
 });
 

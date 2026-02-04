@@ -1,6 +1,7 @@
 import { Image, StyleSheet, Text, View } from 'react-native';
 import BuzzMeter from './BuzzMeter';
 import ProviderChips from './ProviderChips';
+import { colors, borderRadius, spacing } from '../theme';
 
 type PosterCardProps = {
   title: string;
@@ -57,11 +58,11 @@ const PosterCard = ({
 const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
-    backgroundColor: '#14151c',
-    borderRadius: 24,
-    padding: 16,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.xl,
+    padding: spacing.md,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.06)',
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOpacity: 0.35,
     shadowRadius: 18,
@@ -69,15 +70,15 @@ const styles = StyleSheet.create({
     elevation: 6
   },
   cardLarge: {
-    marginBottom: 20
+    marginBottom: spacing.lg
   },
   cardSmall: {
-    marginBottom: 16
+    marginBottom: spacing.md
   },
   posterWrap: {
-    borderRadius: 18,
+    borderRadius: borderRadius.lg,
     overflow: 'hidden',
-    backgroundColor: '#20222c'
+    backgroundColor: colors.skeleton
   },
   posterLarge: {
     width: 120,
@@ -103,30 +104,30 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 10,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,122,81,0.9)'
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.accent + 'E6'
   },
   posterBadgeText: {
-    color: '#111',
+    color: colors.background,
     fontSize: 11,
     fontWeight: '800'
   },
   content: {
     flex: 1,
-    marginLeft: 16
+    marginLeft: spacing.md
   },
   genre: {
-    color: '#ff7a51',
+    color: colors.accent,
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1
   },
   title: {
-    color: '#f5f5f5',
+    color: colors.textPrimary,
     fontWeight: '700',
-    marginTop: 6
+    marginTop: spacing.xs
   },
   titleLarge: {
     fontSize: 20
@@ -135,19 +136,19 @@ const styles = StyleSheet.create({
     fontSize: 17
   },
   tagline: {
-    color: '#9ea4b5',
+    color: colors.textSecondary,
     fontSize: 12,
-    marginTop: 6,
+    marginTop: spacing.xs,
     lineHeight: 18
   },
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 12
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm
   },
   metaText: {
-    color: '#cbd0dd',
+    color: colors.textMuted,
     fontSize: 11,
     fontWeight: '600'
   },
@@ -155,8 +156,8 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 999,
-    backgroundColor: '#62697a',
-    marginHorizontal: 8
+    backgroundColor: colors.textMuted,
+    marginHorizontal: spacing.sm
   }
 });
 
