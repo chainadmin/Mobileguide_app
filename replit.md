@@ -42,9 +42,9 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Port**: Defaults to 4000, configurable via PORT environment variable
 
 ### Data Layer
-- **Database**: PostgreSQL (pg driver installed)
+- **Database**: PostgreSQL hosted on Railway
 - **Migrations**: SQL files stored in `db/migrations/` directory
-- **Current State**: Database schema not yet implemented; API returns mock data
+- **Buzz Votes Table**: Stores anonymous engagement data with unique constraint on (media_type, tmdb_id)
 
 ## External Dependencies
 
@@ -66,6 +66,12 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data)
 
 ## Recent Changes
+- **Feb 2026**: Implemented anonymous buzz voting system
+  - API deployed on Railway with PostgreSQL database
+  - Railway URL: welcoming-elegance-production-9299.up.railway.app
+  - BuzzMeter component is tappable to submit votes
+  - TitleDetailScreen fetches and displays live buzz counts
+  - API endpoints: GET/POST /api/buzz/:mediaType/:tmdbId, GET /api/buzz/top
 - **Feb 2026**: Integrated TMDB API for real movie/TV data
   - TrendingScreen and UpcomingScreen now fetch live data
   - TitleDetailScreen shows full details with streaming providers
