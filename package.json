@@ -3,5 +3,10 @@
   "private": true,
   "workspaces": [
     "apps/*"
-  ]
+  ],
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/pg": "^8.16.0",
+    "cors": "^2.8.6"
+  }
 }
