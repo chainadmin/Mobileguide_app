@@ -6,7 +6,7 @@ const port = process.env.PORT ? Number(process.env.PORT) : 4000;
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'mobileguide-api' });
+  res.json({ status: 'ok', service: 'buzzreel-api' });
 });
 
 app.get('/api/trending', (_req, res) => {
@@ -85,5 +85,5 @@ app.post('/api/admin/refresh', (_req, res) => {
 
 app.listen(port, () => {
   // eslint-disable-next-line no-console
-  console.log(`mobileguide-api listening on port ${port}`);
+  console.log(`buzzreel-api listening on port ${port}`);
 });
