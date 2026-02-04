@@ -185,6 +185,23 @@ export async function getUpcoming(region: string = 'US'): Promise<TrendingItem[]
   return results;
 }
 
+export async function getNewThisWeek(region: string = 'US'): Promise<TrendingItem[]> {
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  
+  const data = await fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
+    region,
+    'primary_release_date.gte': formatDate(oneWeekAgo),
+    'primary_release_date.lte': formatDate(now),
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '5'
+  });
+  
+  return data.results.slice(0, 10).map(item => ({ ...item, media_type: 'movie' as MediaType }));
+}
+
 export async function getMovieDetails(movieId: number): Promise<MovieDetails> {
   const cacheKey = `@buzzreel_cache_movie_${movieId}`;
   const cached = await getCached<MovieDetails>(cacheKey);

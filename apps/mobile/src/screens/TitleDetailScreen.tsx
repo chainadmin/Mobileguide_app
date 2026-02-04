@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { colors, spacing, borderRadius } from '../theme';
 import BuzzMeter from '../components/BuzzMeter';
@@ -23,12 +24,14 @@ import {
 import { recordView } from '../services/api';
 
 type TitleDetailRouteProp = RouteProp<RootStackParamList, 'TitleDetail'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const TitleDetailScreen = () => {
   const route = useRoute<TitleDetailRouteProp>();
+  const navigation = useNavigation<NavigationProp>();
   const { mediaType, tmdbId } = route.params;
   const { region } = useRegion();
-  const { addToWatchlist, removeFromWatchlist, isInWatchlist, isFull } = useWatchlist();
+  const { addToWatchlist, removeFromWatchlist, isInWatchlist } = useWatchlist();
 
   const [details, setDetails] = useState<MovieDetails | TVDetails | null>(null);
   const [providers, setProviders] = useState<string[]>([]);
@@ -72,18 +75,16 @@ const TitleDetailScreen = () => {
       await removeFromWatchlist(tmdbId, mediaType);
       setInWatchlist(false);
     } else {
-      if (isFull) {
-        Alert.alert('Watchlist Full', 'You can save up to 10 titles. Remove one to add more.');
-        return;
-      }
-      const success = await addToWatchlist({
+      const result = await addToWatchlist({
         id: tmdbId,
         mediaType,
         title,
         posterPath: details.poster_path
       });
-      if (success) {
+      if (result.success) {
         setInWatchlist(true);
+      } else if (result.limitReached) {
+        navigation.navigate('Paywall');
       }
     }
   };

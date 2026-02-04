@@ -38,3 +38,68 @@ export async function getTopBuzz(region: string): Promise<{ media_type: string; 
     return [];
   }
 }
+
+export type WatchlistApiItem = {
+  tmdb_id: number;
+  media_type: 'movie' | 'tv';
+  title: string;
+  poster_path: string | null;
+  added_at: string;
+};
+
+export async function getWatchlist(guestId: string): Promise<WatchlistApiItem[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/watchlist/${guestId}`);
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items ?? [];
+  } catch (error) {
+    console.error('Error getting watchlist:', error);
+    return [];
+  }
+}
+
+export async function addToWatchlistApi(
+  guestId: string,
+  item: { tmdbId: number; mediaType: string; title: string; posterPath: string | null }
+): Promise<{ success: boolean; limitReached?: boolean; items?: WatchlistApiItem[] }> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/watchlist/${guestId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(item)
+    });
+    
+    if (response.status === 403) {
+      return { success: false, limitReached: true };
+    }
+    
+    if (!response.ok) {
+      return { success: false };
+    }
+    
+    const data = await response.json();
+    return { success: true, items: data.items };
+  } catch (error) {
+    console.error('Error adding to watchlist:', error);
+    return { success: false };
+  }
+}
+
+export async function removeFromWatchlistApi(
+  guestId: string,
+  mediaType: string,
+  tmdbId: number
+): Promise<WatchlistApiItem[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/watchlist/${guestId}/${mediaType}/${tmdbId}`, {
+      method: 'DELETE'
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return data.items ?? [];
+  } catch (error) {
+    console.error('Error removing from watchlist:', error);
+    return [];
+  }
+}

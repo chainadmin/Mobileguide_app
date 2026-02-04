@@ -63,6 +63,72 @@ app.get('/api/buzz/:region/top', async (req, res) => {
   }
 });
 
+app.get('/api/watchlist/:guestId', async (req, res) => {
+  try {
+    const { guestId } = req.params;
+    const result = await query(
+      'SELECT tmdb_id, media_type, title, poster_path, added_at FROM watchlists WHERE guest_id = $1 ORDER BY added_at DESC',
+      [guestId]
+    );
+    res.json({ items: result.rows });
+  } catch (error) {
+    console.error('Error getting watchlist:', error);
+    res.status(500).json({ error: 'Failed to get watchlist' });
+  }
+});
+
+app.post('/api/watchlist/:guestId', async (req, res) => {
+  try {
+    const { guestId } = req.params;
+    const { tmdbId, mediaType, title, posterPath } = req.body;
+    
+    const countResult = await query(
+      'SELECT COUNT(*) as count FROM watchlists WHERE guest_id = $1',
+      [guestId]
+    );
+    const count = parseInt(countResult.rows[0].count, 10);
+    
+    if (count >= 10) {
+      return res.status(403).json({ error: 'Watchlist limit reached', limitReached: true });
+    }
+    
+    await query(
+      `INSERT INTO watchlists (guest_id, tmdb_id, media_type, title, poster_path)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (guest_id, tmdb_id, media_type) DO NOTHING`,
+      [guestId, tmdbId, mediaType, title, posterPath]
+    );
+    
+    const result = await query(
+      'SELECT tmdb_id, media_type, title, poster_path, added_at FROM watchlists WHERE guest_id = $1 ORDER BY added_at DESC',
+      [guestId]
+    );
+    res.json({ items: result.rows });
+  } catch (error) {
+    console.error('Error adding to watchlist:', error);
+    res.status(500).json({ error: 'Failed to add to watchlist' });
+  }
+});
+
+app.delete('/api/watchlist/:guestId/:mediaType/:tmdbId', async (req, res) => {
+  try {
+    const { guestId, mediaType, tmdbId } = req.params;
+    await query(
+      'DELETE FROM watchlists WHERE guest_id = $1 AND media_type = $2 AND tmdb_id = $3',
+      [guestId, mediaType, tmdbId]
+    );
+    
+    const result = await query(
+      'SELECT tmdb_id, media_type, title, poster_path, added_at FROM watchlists WHERE guest_id = $1 ORDER BY added_at DESC',
+      [guestId]
+    );
+    res.json({ items: result.rows });
+  } catch (error) {
+    console.error('Error removing from watchlist:', error);
+    res.status(500).json({ error: 'Failed to remove from watchlist' });
+  }
+});
+
 async function start() {
   try {
     await initDb();

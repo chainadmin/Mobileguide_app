@@ -26,6 +26,21 @@ export async function initDb() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_buzz_views_region ON buzz_views(region, media_type, tmdb_id)
   `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS watchlists (
+      id SERIAL PRIMARY KEY,
+      guest_id VARCHAR(36) NOT NULL,
+      tmdb_id INTEGER NOT NULL,
+      media_type VARCHAR(10) NOT NULL,
+      title VARCHAR(255) NOT NULL,
+      poster_path VARCHAR(255),
+      added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(guest_id, tmdb_id, media_type)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_watchlists_guest ON watchlists(guest_id)
+  `);
   console.log('Database initialized');
 }
 

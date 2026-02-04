@@ -10,7 +10,8 @@ import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import {
   getRegionalContent,
-  getUpcoming,
+  getNewThisWeek,
+  getTrending,
   getWatchProviders,
   getPosterUrl,
   formatRating,
@@ -19,6 +20,8 @@ import {
   WatchProvider
 } from '../services/tmdb';
 import { getTopBuzz } from '../services/api';
+import { recordAppOpen, getStreak } from '../services/streak';
+import { getCached, setCache } from '../services/cache';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -41,13 +44,26 @@ type DigestItem = {
   mediaType: 'movie' | 'tv';
 };
 
+const DIGEST_CACHE_KEY = 'daily_digest';
+const DIGEST_CACHE_HOURS = 24;
+
 const TrendingScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
   const [tonightPicks, setTonightPicks] = useState<DisplayItem[]>([]);
   const [trendingNearYou, setTrendingNearYou] = useState<DisplayItem[]>([]);
-  const [dailyDigest, setDailyDigest] = useState<DigestItem[]>([]);
+  const [top10Today, setTop10Today] = useState<DigestItem[]>([]);
+  const [newThisWeek, setNewThisWeek] = useState<DigestItem[]>([]);
+  const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function initStreak() {
+      const currentStreak = await recordAppOpen();
+      setStreak(currentStreak);
+    }
+    initStreak();
+  }, []);
 
   const fetchData = useCallback(async () => {
     if (!region) return;
@@ -56,21 +72,42 @@ const TrendingScreen = () => {
       setLoading(true);
       const regionCode = region.code;
       
-      const [regionalContent, topBuzz, upcoming] = await Promise.all([
+      const cachedDigest = await getCached<{ top10: DigestItem[]; newWeek: DigestItem[] }>(
+        `${DIGEST_CACHE_KEY}_${regionCode}`,
+        DIGEST_CACHE_HOURS
+      );
+
+      if (cachedDigest) {
+        setTop10Today(cachedDigest.top10);
+        setNewThisWeek(cachedDigest.newWeek);
+      }
+
+      const [regionalContent, topBuzz, trendingToday, recentReleases] = await Promise.all([
         getRegionalContent(regionCode),
         getTopBuzz(regionCode),
-        getUpcoming(regionCode)
+        getTrending('all', 'day'),
+        getNewThisWeek(regionCode)
       ]);
 
       const buzzMap = new Map(topBuzz.map(b => [`${b.media_type}-${b.tmdb_id}`, b.view_count]));
 
-      const digestItems: DigestItem[] = upcoming.slice(0, 8).map(item => ({
+      const top10Items: DigestItem[] = trendingToday.slice(0, 10).map(item => ({
         id: item.id,
         title: item.title || item.name || '',
         posterUrl: getPosterUrl(item.poster_path, 'w185'),
-        mediaType: 'movie'
+        mediaType: item.media_type
       }));
-      setDailyDigest(digestItems);
+      setTop10Today(top10Items);
+
+      const newWeekItems: DigestItem[] = recentReleases.map(item => ({
+        id: item.id,
+        title: item.title || item.name || '',
+        posterUrl: getPosterUrl(item.poster_path, 'w185'),
+        mediaType: 'movie' as const
+      }));
+      setNewThisWeek(newWeekItems);
+
+      await setCache(`${DIGEST_CACHE_KEY}_${regionCode}`, { top10: top10Items, newWeek: newWeekItems });
 
       const tonightItems = await Promise.all(
         regionalContent.slice(0, 2).map(item => transformItem(item, buzzMap, regionCode))
@@ -129,16 +166,58 @@ const TrendingScreen = () => {
     }
   }
 
+  const renderDigestStrip = (items: DigestItem[], title: string, subtitle: string) => (
+    <>
+      <SectionHeader title={title} subtitle={subtitle} />
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false} 
+        style={styles.digestScroll}
+        contentContainerStyle={styles.digestContainer}
+      >
+        {items.map((item, index) => (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.digestItem}
+            onPress={() => navigation.navigate('TitleDetail', { 
+              mediaType: item.mediaType, 
+              tmdbId: item.id 
+            })}
+            activeOpacity={0.8}
+          >
+            <View style={styles.digestPosterContainer}>
+              <Image source={{ uri: item.posterUrl }} style={styles.digestPoster} />
+              {title === 'TOP 10 TODAY' && (
+                <View style={styles.rankBadge}>
+                  <Text style={styles.rankText}>{index + 1}</Text>
+                </View>
+              )}
+            </View>
+            <Text style={styles.digestTitle} numberOfLines={2}>{item.title}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </>
+  );
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <TouchableOpacity 
-        style={styles.regionBadge} 
-        onPress={() => navigation.navigate('RegionSelect')}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.regionText}>{region?.name || 'Select Region'}</Text>
-        <Text style={styles.changeText}>Change</Text>
-      </TouchableOpacity>
+      <View style={styles.headerRow}>
+        <TouchableOpacity 
+          style={styles.regionBadge} 
+          onPress={() => navigation.navigate('RegionSelect')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.regionText}>{region?.name || 'Select Region'}</Text>
+          <Text style={styles.changeText}>Change</Text>
+        </TouchableOpacity>
+        {streak > 0 && (
+          <View style={styles.streakBadge}>
+            <Text style={styles.streakIcon}>🔥</Text>
+            <Text style={styles.streakText}>{streak} day{streak !== 1 ? 's' : ''}</Text>
+          </View>
+        )}
+      </View>
 
       <SectionHeader title="TONIGHT" subtitle="Top picks curated for your evening." />
       <View style={styles.section}>
@@ -169,28 +248,9 @@ const TrendingScreen = () => {
         )}
       </View>
 
-      <SectionHeader title="DAILY DIGEST" subtitle="Coming soon to your screens." />
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
-        style={styles.digestScroll}
-        contentContainerStyle={styles.digestContainer}
-      >
-        {dailyDigest.map((item) => (
-          <TouchableOpacity
-            key={item.id}
-            style={styles.digestItem}
-            onPress={() => navigation.navigate('TitleDetail', { 
-              mediaType: item.mediaType, 
-              tmdbId: item.id 
-            })}
-            activeOpacity={0.8}
-          >
-            <Image source={{ uri: item.posterUrl }} style={styles.digestPoster} />
-            <Text style={styles.digestTitle} numberOfLines={2}>{item.title}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {renderDigestStrip(top10Today, 'TOP 10 TODAY', 'Most watched right now.')}
+      
+      {newThisWeek.length > 0 && renderDigestStrip(newThisWeek, 'NEW THIS WEEK', 'Fresh releases to check out.')}
     </ScrollView>
   );
 };
@@ -204,7 +264,15 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 40
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    gap: spacing.sm
+  },
   regionBadge: {
+    flex: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -212,7 +280,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
     borderRadius: borderRadius.md,
-    marginBottom: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border
   },
@@ -225,6 +292,23 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 12,
     fontWeight: '600'
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent + '20',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: borderRadius.md,
+    gap: 4
+  },
+  streakIcon: {
+    fontSize: 14
+  },
+  streakText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '700'
   },
   section: {
     marginBottom: 28
@@ -240,16 +324,35 @@ const styles = StyleSheet.create({
   digestItem: {
     width: 100
   },
+  digestPosterContainer: {
+    position: 'relative'
+  },
   digestPoster: {
     width: 100,
     height: 150,
     borderRadius: borderRadius.sm,
     backgroundColor: colors.skeleton
   },
+  rankBadge: {
+    position: 'absolute',
+    bottom: -8,
+    left: -8,
+    backgroundColor: colors.accent,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  rankText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '800'
+  },
   digestTitle: {
     color: colors.textSecondary,
     fontSize: 12,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
     textAlign: 'center'
   }
 });

@@ -39,6 +39,9 @@ This approach keeps frontend and backend code in a single repository while maint
   - `GET /api/buzz/:region/:mediaType/:tmdbId` - Get view count for a title in a region
   - `POST /api/buzz/:region/:mediaType/:tmdbId/view` - Record a view for a title in a region
   - `GET /api/buzz/:region/top` - Get top viewed titles in a region
+  - `GET /api/watchlist/:guestId` - Get user's watchlist
+  - `POST /api/watchlist/:guestId` - Add item to watchlist (10-item limit enforced)
+  - `DELETE /api/watchlist/:guestId/:mediaType/:tmdbId` - Remove item from watchlist
 - **Port**: Defaults to 4000, configurable via PORT environment variable
 - **Deployment**: Railway (welcoming-elegance-production-9299.up.railway.app)
 
@@ -48,6 +51,9 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Buzz Views Table**: Stores anonymous regional engagement data
   - Tracks views per region, media_type, and tmdb_id
   - Unique constraint on (region, media_type, tmdb_id)
+- **Watchlists Table**: Stores user watchlists keyed by guest_id
+  - Columns: guest_id, tmdb_id, media_type, title, poster_path, added_at
+  - Unique constraint on (guest_id, tmdb_id, media_type)
 
 ## External Dependencies
 
@@ -71,6 +77,13 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data), filtered by user's region
 
 ## Recent Changes
+- **Feb 2026**: Implemented watchlist backend persistence and engagement features
+  - GuestId (UUID) generated and stored in AsyncStorage for anonymous users
+  - Watchlist syncs with backend API per guestId (CRUD operations)
+  - Free users capped at 10 items server-side; exceeding cap opens Paywall
+  - Daily Digest enhanced: "Top 10 Today" with rank badges, "New This Week" for recent releases
+  - Streak tracking: daily app opens tracked locally, displayed as "X days" badge on Trending
+  - 24-hour caching for Daily Digest data
 - **Feb 2026**: Added subscription paywall and enhanced UI features
   - PaywallScreen with Monthly ($1.99), Yearly ($9.99), and Lifetime ($19.99) tiers
   - Daily Digest horizontal strip on Trending showing upcoming movies
