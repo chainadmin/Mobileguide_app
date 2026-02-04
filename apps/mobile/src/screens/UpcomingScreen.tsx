@@ -132,6 +132,7 @@ const UpcomingScreen = () => {
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <View style={styles.header}>
             <SectionHeader title="UPCOMING" subtitle="Save the dates for these releases." />
