@@ -13,7 +13,7 @@ const SettingsScreen = () => {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>ABOUT</Text>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>Streamguide</Text>
+          <Text style={styles.cardTitle}>Buzzreel</Text>
           <Text style={styles.cardText}>
             Discover trending movies and TV shows, track upcoming releases, and manage your personal watchlist.
           </Text>

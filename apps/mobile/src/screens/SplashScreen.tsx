@@ -19,7 +19,7 @@ const SplashScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>STREAMGUIDE</Text>
+      <Text style={styles.logo}>BUZZREEL</Text>
       <Text style={styles.tagline}>What's blowing up tonight</Text>
       <View style={styles.accent} />
     </View>

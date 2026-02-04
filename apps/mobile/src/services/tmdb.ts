@@ -3,11 +3,6 @@ const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p';
 
 const API_KEY = process.env.EXPO_PUBLIC_TMDB_API_KEY || '';
 
-const headers = {
-  Authorization: `Bearer ${API_KEY}`,
-  'Content-Type': 'application/json'
-};
-
 export type MediaType = 'movie' | 'tv';
 
 export type TrendingItem = {
@@ -65,9 +60,10 @@ export type WatchProviderResult = {
 
 async function fetchTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
+  url.searchParams.set('api_key', API_KEY);
   Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
   
-  const response = await fetch(url.toString(), { headers });
+  const response = await fetch(url.toString());
   if (!response.ok) {
     throw new Error(`TMDB API error: ${response.status}`);
   }
