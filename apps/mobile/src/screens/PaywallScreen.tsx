@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, borderRadius } from '../theme';
+import { useEntitlements } from '../context/EntitlementsContext';
 
-type PlanType = 'monthly' | 'yearly' | 'lifetime';
+type PlanType = 'monthly' | 'yearly';
 
 type Plan = {
   id: PlanType;
@@ -28,34 +29,57 @@ const PLANS: Plan[] = [
     period: '/year',
     savings: 'Save 58%',
     popular: true
-  },
-  {
-    id: 'lifetime',
-    name: 'Lifetime',
-    price: '$19.99',
-    period: 'one-time',
-    savings: 'Best Value'
   }
 ];
 
 const PRO_FEATURES = [
-  'Unlimited watchlist items',
-  'Release date alerts & notifications',
-  'Platform filters by streaming service',
-  'Priority support',
-  'No ads ever'
+  {
+    icon: '♾️',
+    title: 'Unlimited Watchlist',
+    description: 'Save as many titles as you want'
+  },
+  {
+    icon: '🔔',
+    title: 'Drop Alerts',
+    description: 'Get notified when your shows release'
+  },
+  {
+    icon: '📺',
+    title: 'Filter by Your Services',
+    description: 'Only see content on platforms you have'
+  },
+  {
+    icon: '🚫',
+    title: 'No Ads',
+    description: 'Enjoy an uninterrupted experience'
+  }
 ];
 
 const PaywallScreen = () => {
   const navigation = useNavigation();
+  const { restorePurchases } = useEntitlements();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
+  const [restoring, setRestoring] = useState(false);
 
   const handleSubscribe = () => {
-    console.log('Subscribe to:', selectedPlan);
+    Alert.alert(
+      'Coming Soon',
+      'In-app purchases will be available in the next update. For now, use the dev toggle in Settings to test Pro features.',
+      [{ text: 'OK' }]
+    );
   };
 
-  const handleRestore = () => {
-    console.log('Restore purchases');
+  const handleRestore = async () => {
+    setRestoring(true);
+    const success = await restorePurchases();
+    setRestoring(false);
+    
+    if (success) {
+      Alert.alert('Restored!', 'Your purchases have been restored.');
+      navigation.goBack();
+    } else {
+      Alert.alert('No Purchases Found', 'We couldn\'t find any previous purchases to restore.');
+    }
   };
 
   return (
@@ -64,15 +88,18 @@ const PaywallScreen = () => {
         <Text style={styles.badge}>PRO</Text>
         <Text style={styles.title}>Unlock Full Access</Text>
         <Text style={styles.subtitle}>
-          Get unlimited watchlist, alerts, and premium features
+          Get the most out of Buzzreel with unlimited features
         </Text>
       </View>
 
       <View style={styles.featuresSection}>
         {PRO_FEATURES.map((feature, index) => (
           <View key={index} style={styles.featureRow}>
-            <Text style={styles.checkmark}>✓</Text>
-            <Text style={styles.featureText}>{feature}</Text>
+            <Text style={styles.featureIcon}>{feature.icon}</Text>
+            <View style={styles.featureContent}>
+              <Text style={styles.featureTitle}>{feature.title}</Text>
+              <Text style={styles.featureDescription}>{feature.description}</Text>
+            </View>
           </View>
         ))}
       </View>
@@ -91,7 +118,7 @@ const PaywallScreen = () => {
           >
             {plan.popular && (
               <View style={styles.popularBadge}>
-                <Text style={styles.popularText}>MOST POPULAR</Text>
+                <Text style={styles.popularText}>BEST VALUE</Text>
               </View>
             )}
             <View style={styles.planContent}>
@@ -123,19 +150,22 @@ const PaywallScreen = () => {
         onPress={handleSubscribe}
         activeOpacity={0.9}
       >
-        <Text style={styles.subscribeText}>Continue</Text>
+        <Text style={styles.subscribeText}>Subscribe Now</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.restoreButton}
         onPress={handleRestore}
+        disabled={restoring}
         activeOpacity={0.7}
       >
-        <Text style={styles.restoreText}>Restore Purchases</Text>
+        <Text style={styles.restoreText}>
+          {restoring ? 'Restoring...' : 'Restore Purchases'}
+        </Text>
       </TouchableOpacity>
 
       <Text style={styles.legalText}>
-        Payment will be charged to your account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
+        Payment will be charged to your Apple/Google account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
       </Text>
     </ScrollView>
   );
@@ -189,20 +219,26 @@ const styles = StyleSheet.create({
   },
   featureRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: spacing.sm
   },
-  checkmark: {
-    color: colors.accent,
-    fontSize: 16,
-    fontWeight: '700',
+  featureIcon: {
+    fontSize: 24,
     marginRight: spacing.md,
-    width: 24
+    width: 32
   },
-  featureText: {
-    color: colors.textPrimary,
-    fontSize: 15,
+  featureContent: {
     flex: 1
+  },
+  featureTitle: {
+    color: colors.textPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2
+  },
+  featureDescription: {
+    color: colors.textSecondary,
+    fontSize: 13
   },
   plansSection: {
     marginBottom: spacing.lg

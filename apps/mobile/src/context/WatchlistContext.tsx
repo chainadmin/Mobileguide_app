@@ -6,6 +6,7 @@ import {
   removeFromWatchlistApi,
   WatchlistApiItem 
 } from '../services/api';
+import { useEntitlements } from './EntitlementsContext';
 
 export type WatchlistItem = {
   id: number;
@@ -42,6 +43,7 @@ function mapApiToLocal(items: WatchlistApiItem[]): WatchlistItem[] {
 export function WatchlistProvider({ children }: { children: ReactNode }) {
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const { isPro } = useEntitlements();
 
   const loadWatchlist = useCallback(async () => {
     try {
@@ -66,6 +68,10 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
       return { success: true };
     }
 
+    if (!isPro && watchlist.length >= MAX_ITEMS) {
+      return { success: false, limitReached: true };
+    }
+
     try {
       const guestId = await getGuestId();
       const result = await addToWatchlistApi(guestId, {
@@ -76,6 +82,14 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
       });
 
       if (result.limitReached) {
+        if (isPro) {
+          const newItem: WatchlistItem = {
+            ...item,
+            addedAt: Date.now()
+          };
+          setWatchlist([newItem, ...watchlist]);
+          return { success: true };
+        }
         return { success: false, limitReached: true };
       }
 
@@ -111,7 +125,7 @@ export function WatchlistProvider({ children }: { children: ReactNode }) {
       addToWatchlist,
       removeFromWatchlist,
       isInWatchlist,
-      isFull: watchlist.length >= MAX_ITEMS,
+      isFull: !isPro && watchlist.length >= MAX_ITEMS,
       refreshWatchlist: loadWatchlist,
       loading
     }}>

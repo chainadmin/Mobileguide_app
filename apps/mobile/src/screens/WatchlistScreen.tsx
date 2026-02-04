@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
@@ -7,19 +7,21 @@ import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
 import { useWatchlist } from '../context/WatchlistContext';
+import { useEntitlements } from '../context/EntitlementsContext';
 import { getPosterUrl } from '../services/tmdb';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const WatchlistScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { watchlist, removeFromWatchlist } = useWatchlist();
+  const { watchlist, removeFromWatchlist, loading, refreshWatchlist } = useWatchlist();
+  const { isPro } = useEntitlements();
   const maxSlots = 10;
-  const isPro = false;
 
   useFocusEffect(
     useCallback(() => {
-    }, [])
+      refreshWatchlist();
+    }, [refreshWatchlist])
   );
 
   const handlePress = (item: typeof watchlist[0]) => {
@@ -37,15 +39,32 @@ const WatchlistScreen = () => {
     navigation.navigate('Paywall');
   };
 
+  const handleSettings = () => {
+    navigation.navigate('Settings');
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={colors.accent} />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
+      <View style={styles.headerRow}>
+        <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
+        <TouchableOpacity onPress={handleSettings} style={styles.settingsButton}>
+          <Text style={styles.settingsIcon}>⚙️</Text>
+        </TouchableOpacity>
+      </View>
       
       <View style={styles.planCard}>
         <View style={styles.planInfo}>
           <Text style={styles.planLabel}>{isPro ? 'Pro Plan' : 'Free Plan'}</Text>
-          <View style={styles.countPill}>
-            <Text style={styles.countText}>
+          <View style={[styles.countPill, isPro && styles.countPillPro]}>
+            <Text style={[styles.countText, isPro && styles.countTextPro]}>
               {isPro ? `${watchlist.length} saved` : `${watchlist.length}/${maxSlots}`}
             </Text>
           </View>
@@ -54,6 +73,11 @@ const WatchlistScreen = () => {
           <TouchableOpacity style={styles.upgradeButton} onPress={handleUpgrade} activeOpacity={0.8}>
             <Text style={styles.upgradeText}>Unlock Unlimited</Text>
           </TouchableOpacity>
+        )}
+        {isPro && (
+          <View style={styles.proBadge}>
+            <Text style={styles.proBadgeText}>PRO</Text>
+          </View>
         )}
       </View>
 
@@ -117,6 +141,23 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 40
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.background
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
+  },
+  settingsButton: {
+    padding: spacing.sm
+  },
+  settingsIcon: {
+    fontSize: 20
+  },
   planCard: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -146,10 +187,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.chipBorder
   },
+  countPillPro: {
+    backgroundColor: colors.accent + '20',
+    borderColor: colors.accent + '40'
+  },
   countText: {
     color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
+  },
+  countTextPro: {
+    color: colors.accent
   },
   upgradeButton: {
     backgroundColor: colors.accent,
@@ -161,6 +209,18 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 12,
     fontWeight: '700'
+  },
+  proBadge: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full
+  },
+  proBadgeText: {
+    color: colors.background,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1
   },
   limitBanner: {
     backgroundColor: colors.accent + '15',

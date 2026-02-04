@@ -1,9 +1,11 @@
-import { Image, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Image, Linking, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
+import { useEntitlements } from '../context/EntitlementsContext';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -12,6 +14,8 @@ const TMDB_LOGO_URL = 'https://www.themoviedb.org/assets/2/v4/logos/v2/blue_shor
 const SettingsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
+  const { isPro, setPro, restorePurchases } = useEntitlements();
+  const [restoring, setRestoring] = useState(false);
 
   const openTMDB = () => {
     Linking.openURL('https://www.themoviedb.org/');
@@ -25,8 +29,28 @@ const SettingsScreen = () => {
     navigation.navigate('Paywall');
   };
 
-  const handleRestore = () => {
-    console.log('Restore purchases');
+  const handleRestore = async () => {
+    setRestoring(true);
+    const success = await restorePurchases();
+    setRestoring(false);
+    
+    if (success) {
+      Alert.alert('Restored!', 'Your purchases have been restored.');
+    } else {
+      Alert.alert('No Purchases Found', 'We couldn\'t find any previous purchases to restore.');
+    }
+  };
+
+  const handleDevToggle = async (value: boolean) => {
+    await setPro(value);
+  };
+
+  const handlePlatformFilters = () => {
+    if (isPro) {
+      Alert.alert('Coming Soon', 'Platform filters will be available in the next update.');
+    } else {
+      navigation.navigate('Paywall');
+    }
   };
 
   return (
@@ -37,15 +61,26 @@ const SettingsScreen = () => {
           <View style={styles.planRow}>
             <View>
               <Text style={styles.planLabel}>Current Plan</Text>
-              <Text style={styles.planValue}>Free</Text>
+              <Text style={[styles.planValue, isPro && styles.planValuePro]}>
+                {isPro ? 'Pro' : 'Free'}
+              </Text>
             </View>
-            <TouchableOpacity style={styles.upgradeButton} onPress={handleGoPro} activeOpacity={0.8}>
-              <Text style={styles.upgradeText}>Go Pro</Text>
-            </TouchableOpacity>
+            {!isPro && (
+              <TouchableOpacity style={styles.upgradeButton} onPress={handleGoPro} activeOpacity={0.8}>
+                <Text style={styles.upgradeText}>Go Pro</Text>
+              </TouchableOpacity>
+            )}
+            {isPro && (
+              <View style={styles.proBadgeLarge}>
+                <Text style={styles.proBadgeLargeText}>PRO</Text>
+              </View>
+            )}
           </View>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.linkRow} onPress={handleRestore}>
-            <Text style={styles.linkRowText}>Restore Purchases</Text>
+          <TouchableOpacity style={styles.linkRow} onPress={handleRestore} disabled={restoring}>
+            <Text style={styles.linkRowText}>
+              {restoring ? 'Restoring...' : 'Restore Purchases'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -61,15 +96,34 @@ const SettingsScreen = () => {
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.settingRow} onPress={handleGoPro} activeOpacity={0.7}>
+          <TouchableOpacity style={styles.settingRow} onPress={handlePlatformFilters} activeOpacity={0.7}>
             <View>
               <Text style={styles.settingLabel}>Platform Filters</Text>
-              <Text style={styles.settingValueMuted}>Pro feature</Text>
+              <Text style={isPro ? styles.settingValue : styles.settingValueMuted}>
+                {isPro ? 'Customize your services' : 'Pro feature'}
+              </Text>
             </View>
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>PRO</Text>
-            </View>
+            {!isPro && (
+              <View style={styles.proBadge}>
+                <Text style={styles.proBadgeText}>PRO</Text>
+              </View>
+            )}
+            {isPro && <Text style={styles.chevron}>›</Text>}
           </TouchableOpacity>
+          {isPro && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.settingRow}>
+                <View>
+                  <Text style={styles.settingLabel}>Release Alerts</Text>
+                  <Text style={styles.settingValue}>Get notified when shows drop</Text>
+                </View>
+                <View style={styles.alertBadge}>
+                  <Text style={styles.alertBadgeText}>ON</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
       </View>
 
@@ -125,6 +179,26 @@ const SettingsScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      {__DEV__ && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitleDev}>DEV ONLY</Text>
+          <View style={styles.cardDev}>
+            <View style={styles.devRow}>
+              <View>
+                <Text style={styles.settingLabel}>Simulate Pro</Text>
+                <Text style={styles.settingValueMuted}>Toggle Pro features for testing</Text>
+              </View>
+              <Switch
+                value={isPro}
+                onValueChange={handleDevToggle}
+                trackColor={{ false: colors.border, true: colors.accent }}
+                thumbColor={colors.textPrimary}
+              />
+            </View>
+          </View>
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -148,12 +222,26 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     marginBottom: spacing.sm
   },
+  sectionTitleDev: {
+    color: '#ff6b6b',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginBottom: spacing.sm
+  },
   card: {
     backgroundColor: colors.card,
     borderRadius: borderRadius.lg,
     padding: spacing.md,
     borderWidth: 1,
     borderColor: colors.border
+  },
+  cardDev: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    borderWidth: 1,
+    borderColor: '#ff6b6b40'
   },
   cardTitle: {
     color: colors.textPrimary,
@@ -188,6 +276,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600'
   },
+  planValuePro: {
+    color: colors.accent
+  },
   upgradeButton: {
     backgroundColor: colors.accent,
     paddingHorizontal: spacing.md,
@@ -199,11 +290,29 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700'
   },
+  proBadgeLarge: {
+    backgroundColor: colors.accent,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full
+  },
+  proBadgeLargeText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1
+  },
   settingRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: spacing.sm
+  },
+  devRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing.xs
   },
   settingLabel: {
     color: colors.textPrimary,
@@ -231,6 +340,18 @@ const styles = StyleSheet.create({
   },
   proBadgeText: {
     color: colors.accent,
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+  alertBadge: {
+    backgroundColor: '#22c55e20',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: borderRadius.xs
+  },
+  alertBadgeText: {
+    color: '#22c55e',
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 0.5

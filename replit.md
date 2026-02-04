@@ -84,14 +84,20 @@ This approach keeps frontend and backend code in a single repository while maint
   - Daily Digest enhanced: "Top 10 Today" with rank badges, "New This Week" for recent releases
   - Streak tracking: daily app opens tracked locally, displayed as "X days" badge on Trending
   - 24-hour caching for Daily Digest data
+- **Feb 2026**: Implemented Pro monetization structure
+  - EntitlementsContext with isPro, setPro, restorePurchases functions
+  - DEV ONLY toggle in Settings to simulate Pro mode for testing
+  - Pro unlocks: unlimited watchlist, platform filters, release alerts (stub), no ads (stub)
+  - PaywallScreen with selling copy and Monthly/Yearly options
+  - WatchlistContext bypasses 10-item limit when Pro is active
+  - IAP_INTEGRATION.md documents how to plug in Expo IAP library
 - **Feb 2026**: Added subscription paywall and enhanced UI features
-  - PaywallScreen with Monthly ($1.99), Yearly ($9.99), and Lifetime ($19.99) tiers
+  - PaywallScreen with Monthly ($1.99) and Yearly ($9.99) tiers
   - Daily Digest horizontal strip on Trending showing upcoming movies
   - Upcoming screen grouped by date with "Drops Today" callouts and 14-day filter
   - Watchlist shows Pro/Free plan distinction with upgrade prompts and limit banners
   - Settings includes subscription management, restore purchases, platform filters (Pro), and Credits section
   - Privacy/Terms links point to buzzreel.app (placeholder URLs)
-  - Note: isPro is hardcoded to false pending subscription context implementation
 - **Feb 2026**: Implemented regional buzz tracking system
   - Users select their region on first launch
   - Buzz counts track how many times a title was viewed in each region

@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './src/theme';
 import { RegionProvider } from './src/context/RegionContext';
 import { WatchlistProvider } from './src/context/WatchlistContext';
+import { EntitlementsProvider } from './src/context/EntitlementsContext';
 
 import PaywallScreen from './src/screens/PaywallScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
@@ -65,7 +66,7 @@ const Tabs = () => {
   );
 };
 
-const App = () => {
+const AppContent = () => {
   return (
     <RegionProvider>
       <WatchlistProvider>
@@ -112,6 +113,14 @@ const App = () => {
         </NavigationContainer>
       </WatchlistProvider>
     </RegionProvider>
+  );
+};
+
+const App = () => {
+  return (
+    <EntitlementsProvider>
+      <AppContent />
+    </EntitlementsProvider>
   );
 };
 
