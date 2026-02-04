@@ -1,6 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import { query, initDb } from './db';
+import {
+  getTrending,
+  getPopularMovies,
+  getPopularTV,
+  getTitleDetails,
+  getWatchProviders,
+  getUpcoming
+} from './tmdb';
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -136,6 +144,150 @@ app.delete('/api/watchlist/:guestId/:mediaType/:tmdbId', async (req, res) => {
   } catch (error) {
     console.error('Error removing from watchlist:', error);
     res.status(500).json({ error: 'Failed to remove from watchlist' });
+  }
+});
+
+const CACHE_HOURS = {
+  trending: 6,
+  title: 24,
+  providers: 12,
+  upcoming: 6
+};
+
+function isCacheValid(cachedAt: Date, hours: number): boolean {
+  const now = new Date();
+  const diff = (now.getTime() - new Date(cachedAt).getTime()) / (1000 * 60 * 60);
+  return diff < hours;
+}
+
+app.get('/api/cache/trending/:region', async (req, res) => {
+  try {
+    const { region } = req.params;
+    const mediaType = (req.query.mediaType as string) || 'all';
+    const timeWindow = (req.query.timeWindow as string) || 'day';
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_trending WHERE region = $1 AND media_type = $2 AND time_window = $3',
+      [region, mediaType, timeWindow]
+    );
+    
+    if (cached.rows[0] && isCacheValid(cached.rows[0].cached_at, CACHE_HOURS.trending)) {
+      return res.json({ data: cached.rows[0].data, cached: true });
+    }
+    
+    let data;
+    if (mediaType === 'all') {
+      const [movies, tv] = await Promise.all([
+        getPopularMovies(region),
+        getPopularTV(region)
+      ]);
+      data = { movies, tv };
+    } else {
+      data = await getTrending(mediaType as 'movie' | 'tv', timeWindow as 'day' | 'week');
+    }
+    
+    await query(
+      `INSERT INTO cached_trending (region, media_type, time_window, data, cached_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (region, media_type, time_window)
+       DO UPDATE SET data = $4, cached_at = NOW()`,
+      [region, mediaType, timeWindow, JSON.stringify(data)]
+    );
+    
+    res.json({ data, cached: false });
+  } catch (error) {
+    console.error('Error getting cached trending:', error);
+    res.status(500).json({ error: 'Failed to get trending content' });
+  }
+});
+
+app.get('/api/cache/title/:mediaType/:tmdbId', async (req, res) => {
+  try {
+    const { mediaType, tmdbId } = req.params;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_titles WHERE tmdb_id = $1 AND media_type = $2',
+      [tmdbId, mediaType]
+    );
+    
+    if (cached.rows[0] && isCacheValid(cached.rows[0].cached_at, CACHE_HOURS.title)) {
+      return res.json({ data: cached.rows[0].data, cached: true });
+    }
+    
+    const data = await getTitleDetails(mediaType as 'movie' | 'tv', Number(tmdbId));
+    
+    await query(
+      `INSERT INTO cached_titles (tmdb_id, media_type, data, cached_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (tmdb_id, media_type)
+       DO UPDATE SET data = $3, cached_at = NOW()`,
+      [tmdbId, mediaType, JSON.stringify(data)]
+    );
+    
+    res.json({ data, cached: false });
+  } catch (error) {
+    console.error('Error getting cached title:', error);
+    res.status(500).json({ error: 'Failed to get title details' });
+  }
+});
+
+app.get('/api/cache/providers/:mediaType/:tmdbId/:region', async (req, res) => {
+  try {
+    const { mediaType, tmdbId, region } = req.params;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_providers WHERE tmdb_id = $1 AND media_type = $2 AND region = $3',
+      [tmdbId, mediaType, region]
+    );
+    
+    if (cached.rows[0] && isCacheValid(cached.rows[0].cached_at, CACHE_HOURS.providers)) {
+      return res.json({ data: cached.rows[0].data, cached: true });
+    }
+    
+    const data = await getWatchProviders(mediaType as 'movie' | 'tv', Number(tmdbId), region);
+    
+    await query(
+      `INSERT INTO cached_providers (tmdb_id, media_type, region, data, cached_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       ON CONFLICT (tmdb_id, media_type, region)
+       DO UPDATE SET data = $4, cached_at = NOW()`,
+      [tmdbId, mediaType, region, JSON.stringify(data)]
+    );
+    
+    res.json({ data, cached: false });
+  } catch (error) {
+    console.error('Error getting cached providers:', error);
+    res.status(500).json({ error: 'Failed to get providers' });
+  }
+});
+
+app.get('/api/cache/upcoming/:region', async (req, res) => {
+  try {
+    const { region } = req.params;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_trending WHERE region = $1 AND media_type = $2 AND time_window = $3',
+      [region, 'upcoming', 'week']
+    );
+    
+    if (cached.rows[0] && isCacheValid(cached.rows[0].cached_at, CACHE_HOURS.upcoming)) {
+      return res.json({ data: cached.rows[0].data, cached: true });
+    }
+    
+    const data = await getUpcoming(region);
+    
+    await query(
+      `INSERT INTO cached_trending (region, media_type, time_window, data, cached_at)
+       VALUES ($1, 'upcoming', 'week', $2, NOW())
+       ON CONFLICT (region, media_type, time_window)
+       DO UPDATE SET data = $2, cached_at = NOW()`,
+      [region, JSON.stringify(data)]
+    );
+    
+    res.json({ data, cached: false });
+  } catch (error) {
+    console.error('Error getting cached upcoming:', error);
+    res.status(500).json({ error: 'Failed to get upcoming content' });
   }
 });
 

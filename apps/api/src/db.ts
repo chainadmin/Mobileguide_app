@@ -41,7 +41,52 @@ export async function initDb() {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_watchlists_guest ON watchlists(guest_id)
   `);
-  console.log('Database initialized');
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cached_trending (
+      id SERIAL PRIMARY KEY,
+      region VARCHAR(5) NOT NULL,
+      media_type VARCHAR(10) NOT NULL,
+      time_window VARCHAR(10) NOT NULL DEFAULT 'day',
+      data JSONB NOT NULL,
+      cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(region, media_type, time_window)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_cached_trending_lookup ON cached_trending(region, media_type, time_window)
+  `);
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cached_titles (
+      id SERIAL PRIMARY KEY,
+      tmdb_id INTEGER NOT NULL,
+      media_type VARCHAR(10) NOT NULL,
+      data JSONB NOT NULL,
+      cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(tmdb_id, media_type)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_cached_titles_lookup ON cached_titles(tmdb_id, media_type)
+  `);
+  
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cached_providers (
+      id SERIAL PRIMARY KEY,
+      tmdb_id INTEGER NOT NULL,
+      media_type VARCHAR(10) NOT NULL,
+      region VARCHAR(5) NOT NULL,
+      data JSONB NOT NULL,
+      cached_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(tmdb_id, media_type, region)
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_cached_providers_lookup ON cached_providers(tmdb_id, media_type, region)
+  `);
+  
+  console.log('Database initialized with cache tables');
 }
 
 export default pool;
