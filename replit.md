@@ -1,8 +1,8 @@
-# Mobileguide Monorepo
+# Buzzreel Monorepo
 
 ## Overview
 
-Mobileguide is a mobile-first entertainment discovery platform that helps users find trending movies and TV shows, track upcoming releases, and manage personal watchlists. The project is structured as a monorepo containing an Expo React Native mobile app and a Node.js/Express API backend.
+Buzzreel is a mobile-first entertainment discovery platform that helps users find trending movies and TV shows, track upcoming releases, and manage personal watchlists. The project is structured as a monorepo containing an Expo React Native mobile app and a Node.js/Express API backend.
 
 ## User Preferences
 
