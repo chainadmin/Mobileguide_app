@@ -28,6 +28,16 @@
       }
     },
     "plugins": [
+      "./plugins/withDisableCppWarningsAsErrors",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**",
+            "extraMavenRepos": []
+          }
+        }
+      ],
       [
         "react-native-google-mobile-ads",
         {

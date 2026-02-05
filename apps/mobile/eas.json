@@ -4,6 +4,11 @@
     "appVersionSource": "local"
   },
   "build": {
+    "base": {
+      "android": {
+        "gradleCommand": ":app:bundleRelease"
+      }
+    },
     "development": {
       "developmentClient": true,
       "distribution": "internal"
@@ -12,9 +17,11 @@
       "distribution": "internal"
     },
     "production": {
+      "extends": "base",
       "node": "20.18.0",
       "env": {
-        "NPM_CONFIG_LEGACY_PEER_DEPS": "true"
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "GRADLE_OPTS": "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m"
       }
     }
   },

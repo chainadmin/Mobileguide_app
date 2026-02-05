@@ -7,7 +7,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "postinstall": "node scripts/patch-rnscreens.js"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
@@ -16,6 +17,7 @@
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.9.26",
     "expo": "~54.0.0",
+    "expo-build-properties": "^1.0.10",
     "expo-status-bar": "~2.2.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
