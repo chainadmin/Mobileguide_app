@@ -57,7 +57,13 @@ const WatchlistScreen = () => {
       const res = await fetch(`${API_BASE}/api/podcasts/follows?guestId=${guestId}`);
       if (res.ok) {
         const data = await res.json();
-        const shows = data.shows || [];
+        const follows = data.follows || [];
+        const shows: PodcastFollow[] = follows.map((f: any) => ({
+          id: f.show_id,
+          title: f.title,
+          author: f.author,
+          image: f.image
+        }));
         setFollowedPodcasts(shows);
         
         const buzzScores: Record<number, number> = {};
