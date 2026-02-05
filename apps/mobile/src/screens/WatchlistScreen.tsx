@@ -4,6 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import AdBanner from '../components/AdBanner';
+import BuzzMeter from '../components/BuzzMeter';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
@@ -12,6 +13,7 @@ import { useEntitlements } from '../context/EntitlementsContext';
 import { useAlerts } from '../context/AlertsContext';
 import { getPosterUrl } from '../services/tmdb';
 import { getGuestId } from '../services/guestId';
+import { useRegion } from '../context/RegionContext';
 
 const API_BASE = 'https://welcoming-elegance-production-9299.up.railway.app';
 
@@ -35,7 +37,9 @@ const WatchlistScreen = () => {
   const { watchlist, removeFromWatchlist, loading, refreshWatchlist } = useWatchlist();
   const { isPro } = useEntitlements();
   const { toggleAlert, isAlertEnabled } = useAlerts();
+  const { region } = useRegion();
   const [followedPodcasts, setFollowedPodcasts] = useState<PodcastFollow[]>([]);
+  const [podcastBuzzScores, setPodcastBuzzScores] = useState<Record<number, number>>({});
   const [guestId, setGuestId] = useState<string | null>(null);
   const maxSlots = 10;
 
@@ -48,17 +52,32 @@ const WatchlistScreen = () => {
   }, []);
 
   const fetchFollowedPodcasts = useCallback(async () => {
-    if (!guestId) return;
+    if (!guestId || !region) return;
     try {
       const res = await fetch(`${API_BASE}/api/podcasts/follows?guestId=${guestId}`);
       if (res.ok) {
         const data = await res.json();
-        setFollowedPodcasts(data.shows || []);
+        const shows = data.shows || [];
+        setFollowedPodcasts(shows);
+        
+        const buzzScores: Record<number, number> = {};
+        await Promise.all(shows.map(async (show: PodcastFollow) => {
+          try {
+            const buzzRes = await fetch(`${API_BASE}/api/podcasts/buzz/show/${show.id}?region=${region.code}`);
+            if (buzzRes.ok) {
+              const buzzData = await buzzRes.json();
+              buzzScores[show.id] = buzzData.viewCount || 0;
+            }
+          } catch {
+            buzzScores[show.id] = 0;
+          }
+        }));
+        setPodcastBuzzScores(buzzScores);
       }
     } catch (err) {
       console.error('Error fetching followed podcasts:', err);
     }
-  }, [guestId]);
+  }, [guestId, region]);
 
   const unfollowPodcast = async (showId: number) => {
     if (!guestId) return;
@@ -76,11 +95,19 @@ const WatchlistScreen = () => {
     }
   };
 
+  useEffect(() => {
+    if (guestId) {
+      fetchFollowedPodcasts();
+    }
+  }, [guestId, fetchFollowedPodcasts]);
+
   useFocusEffect(
     useCallback(() => {
       refreshWatchlist();
-      fetchFollowedPodcasts();
-    }, [refreshWatchlist, fetchFollowedPodcasts])
+      if (guestId) {
+        fetchFollowedPodcasts();
+      }
+    }, [refreshWatchlist, fetchFollowedPodcasts, guestId])
   );
 
   const handlePress = (item: typeof watchlist[0]) => {
@@ -222,34 +249,32 @@ const WatchlistScreen = () => {
             </View>
           )}
           {followedPodcasts.map((podcast) => (
-            <TouchableOpacity
-              key={`podcast-${podcast.id}`}
-              style={styles.card}
-              onPress={() => navigation.navigate('PodcastShowDetail', { showId: podcast.id })}
-              activeOpacity={0.8}
-            >
-              <Image
-                source={{ uri: podcast.image }}
-                style={styles.poster}
-              />
-              <View style={styles.cardContent}>
-                <Text style={styles.title} numberOfLines={2}>{stripHtml(podcast.title)}</Text>
-                <Text style={styles.type}>Podcast</Text>
-                <View style={styles.buzzMeter}>
-                  <Text style={styles.buzzIcon}>🔥</Text>
-                  <Text style={styles.buzzText}>{podcast.buzzScore || 0} buzz</Text>
+            <View key={`podcast-${podcast.id}`} style={styles.podcastCard}>
+              <TouchableOpacity
+                style={styles.podcastCardContent}
+                onPress={() => navigation.navigate('PodcastShowDetail', { showId: podcast.id })}
+                activeOpacity={0.8}
+              >
+                <Image
+                  source={{ uri: podcast.image }}
+                  style={styles.poster}
+                />
+                <View style={styles.cardContent}>
+                  <Text style={styles.title} numberOfLines={2}>{stripHtml(podcast.title)}</Text>
+                  <Text style={styles.type}>Podcast</Text>
+                  <BuzzMeter value={podcastBuzzScores[podcast.id] || 0} />
                 </View>
-              </View>
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  style={styles.removeButton}
-                  onPress={() => unfollowPodcast(podcast.id)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Text style={styles.removeText}>Unfollow</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableOpacity>
+                <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    style={styles.removeButton}
+                    onPress={() => unfollowPodcast(podcast.id)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.removeText}>Unfollow</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </View>
           ))}
         </>
       )}
@@ -447,19 +472,17 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase'
   },
-  buzzMeter: {
+  podcastCard: {
+    marginBottom: spacing.sm
+  },
+  podcastCardContent: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4
-  },
-  buzzIcon: {
-    fontSize: 12
-  },
-  buzzText: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '600'
+    alignItems: 'flex-start',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.border
   }
 });
 

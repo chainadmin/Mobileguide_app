@@ -154,7 +154,7 @@ const PodcastsScreen = () => {
         <Text style={styles.showAuthor} numberOfLines={1}>{stripHtml(show.author)}</Text>
         <View style={styles.showBuzzMeter}>
           <Text style={styles.showBuzzIcon}>🔥</Text>
-          <Text style={styles.showBuzzText}>{show.buzzScore || 0} buzz</Text>
+          <Text style={styles.showBuzzText}>{show.buzzScore || 0} views</Text>
         </View>
       </View>
     </TouchableOpacity>

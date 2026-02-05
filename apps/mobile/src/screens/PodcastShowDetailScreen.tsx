@@ -4,6 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import type { RootStackParamList } from '../../App';
+import BuzzMeter from '../components/BuzzMeter';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import { useEntitlements } from '../context/EntitlementsContext';
@@ -51,6 +52,7 @@ const PodcastShowDetailScreen = () => {
   const [error, setError] = useState<string | null>(null);
   const [followLoading, setFollowLoading] = useState(false);
   const [guestId, setGuestId] = useState<string | null>(null);
+  const [viewCount, setViewCount] = useState(0);
 
   useEffect(() => {
     const init = async () => {
@@ -61,10 +63,28 @@ const PodcastShowDetailScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (guestId) {
+    if (guestId && region) {
       fetchShowDetails();
+      recordView();
     }
-  }, [showId, guestId]);
+  }, [showId, guestId, region]);
+
+  const recordView = async () => {
+    if (!guestId || !region) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/podcasts/buzz/show/${showId}/view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ region: region.code, guestId })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setViewCount(data.viewCount || 0);
+      }
+    } catch (err) {
+      console.error('Error recording podcast view:', err);
+    }
+  };
 
   const fetchShowDetails = async () => {
     if (!guestId) return;
@@ -163,7 +183,7 @@ const PodcastShowDetailScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container}>
+    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
         <Image source={{ uri: show.image }} style={styles.showImage} />
         <View style={styles.headerInfo}>
@@ -188,6 +208,8 @@ const PodcastShowDetailScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
+
+      <BuzzMeter value={viewCount} />
 
       <Text style={styles.description}>{stripHtml(show.description)}</Text>
 

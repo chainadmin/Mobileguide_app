@@ -422,6 +422,54 @@ function isPodcastCacheValid(cachedAt: Date): boolean {
   return diff < PODCAST_CACHE_HOURS;
 }
 
+app.get('/api/podcasts/buzz/show/:showId', async (req, res) => {
+  try {
+    const { showId } = req.params;
+    const region = (req.query.region as string) || 'US';
+    
+    const result = await query(
+      `SELECT COUNT(*) as view_count FROM podcast_events 
+       WHERE show_id = $1 AND region = $2 AND event_type = 'show_view'
+       AND created_at >= NOW() - INTERVAL '24 hours'`,
+      [showId, region]
+    );
+    const viewCount = parseInt(result.rows[0]?.view_count ?? 0, 10);
+    res.json({ showId: Number(showId), region, viewCount });
+  } catch (error) {
+    console.error('Error getting podcast buzz:', error);
+    res.status(500).json({ error: 'Failed to get podcast buzz', viewCount: 0 });
+  }
+});
+
+app.post('/api/podcasts/buzz/show/:showId/view', async (req, res) => {
+  try {
+    const { showId } = req.params;
+    const { region, guestId } = req.body;
+    
+    if (!region) {
+      return res.status(400).json({ error: 'Missing region' });
+    }
+    
+    await query(
+      `INSERT INTO podcast_events (guest_id, region, event_type, show_id)
+       VALUES ($1, $2, 'show_view', $3)`,
+      [guestId || null, region, showId]
+    );
+    
+    const result = await query(
+      `SELECT COUNT(*) as view_count FROM podcast_events 
+       WHERE show_id = $1 AND region = $2 AND event_type = 'show_view'
+       AND created_at >= NOW() - INTERVAL '24 hours'`,
+      [showId, region]
+    );
+    const viewCount = parseInt(result.rows[0]?.view_count ?? 0, 10);
+    res.json({ showId: Number(showId), region, viewCount });
+  } catch (error) {
+    console.error('Error recording podcast view:', error);
+    res.status(500).json({ error: 'Failed to record view' });
+  }
+});
+
 app.get('/api/podcasts/buzz', async (req, res) => {
   try {
     const region = (req.query.region as string) || 'US';
