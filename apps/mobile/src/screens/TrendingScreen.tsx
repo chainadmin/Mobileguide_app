@@ -251,7 +251,7 @@ const TrendingScreen = () => {
         )}
       </View>
 
-      <SectionHeader title={`TRENDING IN ${region?.name?.toUpperCase() || 'YOUR AREA'}`} subtitle="Fresh buzz in your region right now." />
+      <SectionHeader title={`BUZZING IN ${region?.code === 'US' ? 'AMERICA' : region?.code === 'GB' ? 'THE UK' : region?.code === 'CA' ? 'CANADA' : region?.name?.toUpperCase() || 'YOUR AREA'}`} subtitle="What everyone's watching near you." />
       <View style={styles.section}>
         {loading ? (
           <>

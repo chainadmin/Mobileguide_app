@@ -16,6 +16,7 @@ type PodcastShow = {
   author: string;
   image: string;
   description: string;
+  buzzScore?: number;
 };
 
 type PodcastEpisode = {
@@ -108,7 +109,14 @@ const PodcastsScreen = () => {
       onPress={() => navigation.navigate('PodcastShowDetail', { showId: show.id })}
       activeOpacity={0.8}
     >
-      <Image source={{ uri: show.image }} style={styles.showImage} />
+      <View style={styles.showImageContainer}>
+        <Image source={{ uri: show.image }} style={styles.showImage} />
+        {show.buzzScore !== undefined && show.buzzScore > 0 && (
+          <View style={styles.buzzBadge}>
+            <Text style={styles.buzzBadgeText}>🔥 {show.buzzScore}</Text>
+          </View>
+        )}
+      </View>
       <View style={styles.showInfo}>
         <Text style={styles.showTitle} numberOfLines={2}>{show.title}</Text>
         <Text style={styles.showAuthor} numberOfLines={1}>{show.author}</Text>
@@ -186,8 +194,8 @@ const PodcastsScreen = () => {
 
       {buzzingNow.length > 0 && renderHorizontalShows(
         buzzingNow, 
-        'BUZZING NOW', 
-        'Most talked about podcasts right now.'
+        `BUZZING IN ${region?.code === 'US' ? 'AMERICA' : region?.code === 'GB' ? 'THE UK' : region?.code === 'CA' ? 'CANADA' : region?.name?.toUpperCase() || 'YOUR AREA'}`, 
+        'What everyone is listening to near you.'
       )}
 
       {newDrops.length > 0 && (
@@ -201,8 +209,8 @@ const PodcastsScreen = () => {
 
       {topInRegion.length > 0 && renderHorizontalShows(
         topInRegion,
-        `TOP IN ${region?.name?.toUpperCase() || 'YOUR REGION'}`,
-        'Popular shows in your area.'
+        `TOP PODCASTS IN ${region?.code === 'US' ? 'AMERICA' : region?.code === 'GB' ? 'THE UK' : region?.code === 'CA' ? 'CANADA' : region?.name?.toUpperCase() || 'YOUR AREA'}`,
+        'Most popular shows near you.'
       )}
 
       {buzzingNow.length === 0 && newDrops.length === 0 && topInRegion.length === 0 && (
@@ -304,11 +312,28 @@ const styles = StyleSheet.create({
     width: 140,
     gap: spacing.sm
   },
+  showImageContainer: {
+    position: 'relative'
+  },
   showImage: {
     width: 140,
     height: 140,
     borderRadius: borderRadius.md,
     backgroundColor: colors.skeleton
+  },
+  buzzBadge: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: borderRadius.sm
+  },
+  buzzBadgeText: {
+    color: colors.textPrimary,
+    fontSize: 11,
+    fontWeight: '700'
   },
   showInfo: {
     gap: 2
