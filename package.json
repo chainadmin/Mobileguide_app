@@ -8,6 +8,7 @@
     "@types/cors": "^2.8.19",
     "@types/pg": "^8.16.0",
     "cors": "^2.8.6",
-    "expo-in-app-purchases": "^14.5.0"
+    "expo-in-app-purchases": "^14.5.0",
+    "react-native-google-mobile-ads": "^16.0.3"
   }
 }

@@ -5,6 +5,27 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "platforms": ["ios", "android", "web"],
-    "sdkVersion": "54.0.0"
+    "sdkVersion": "54.0.0",
+    "android": {
+      "package": "com.buzzreel.app",
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.buzzreel.app",
+      "config": {
+        "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
+      }
+    },
+    "plugins": [
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-1580761947831808~4467016439",
+          "iosAppId": "ca-app-pub-1580761947831808~4467016439"
+        }
+      ]
+    ]
   }
 }
