@@ -16,7 +16,7 @@ const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app'
 const SettingsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
-  const { isPro, setPro, restorePurchases } = useEntitlements();
+  const { isPro, setDevPro, restorePurchases } = useEntitlements();
   const { selectedPlatforms, isEnabled } = usePlatformFilters();
   const [restoring, setRestoring] = useState(false);
 
@@ -45,7 +45,7 @@ const SettingsScreen = () => {
   };
 
   const handleDevToggle = async (value: boolean) => {
-    await setPro(value);
+    await setDevPro(value);
   };
 
   const handlePlatformFilters = () => {

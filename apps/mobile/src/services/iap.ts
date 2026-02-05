@@ -9,7 +9,11 @@ export const PRODUCT_IDS = {
 const ALL_PRODUCT_IDS = [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.YEARLY];
 
 let isConnected = false;
-let purchaseListener: InAppPurchases.IAPItemDetails[] | null = null;
+let listenerRegistered = false;
+let purchaseCallbacks: {
+  onSuccess: () => void;
+  onError: (error: string) => void;
+} | null = null;
 
 export async function initializeIAP(): Promise<boolean> {
   try {
@@ -18,13 +22,53 @@ export async function initializeIAP(): Promise<boolean> {
       return false;
     }
 
+    if (isConnected) {
+      return true;
+    }
+
     await InAppPurchases.connectAsync();
     isConnected = true;
+    
+    if (!listenerRegistered) {
+      InAppPurchases.setPurchaseListener(handlePurchaseUpdate);
+      listenerRegistered = true;
+    }
+    
     console.log('IAP connected successfully');
     return true;
   } catch (error) {
     console.error('Error connecting to IAP:', error);
     return false;
+  }
+}
+
+function handlePurchaseUpdate({ responseCode, results }: InAppPurchases.InAppPurchaseListener) {
+  if (responseCode === InAppPurchases.IAPResponseCode.OK) {
+    results?.forEach(async (purchase) => {
+      if (!purchase.acknowledged) {
+        try {
+          await InAppPurchases.finishTransactionAsync(purchase, true);
+          console.log('Transaction finished:', purchase.productId);
+        } catch (err) {
+          console.error('Error finishing transaction:', err);
+        }
+      }
+    });
+    
+    if (purchaseCallbacks?.onSuccess) {
+      purchaseCallbacks.onSuccess();
+      purchaseCallbacks = null;
+    }
+  } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+    if (purchaseCallbacks?.onError) {
+      purchaseCallbacks.onError('canceled');
+      purchaseCallbacks = null;
+    }
+  } else {
+    if (purchaseCallbacks?.onError) {
+      purchaseCallbacks.onError('Purchase failed. Please try again.');
+      purchaseCallbacks = null;
+    }
   }
 }
 
@@ -57,24 +101,11 @@ export async function purchaseSubscription(
       }
     }
 
-    InAppPurchases.setPurchaseListener(({ responseCode, results }) => {
-      if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-        results?.forEach(async (purchase) => {
-          if (!purchase.acknowledged) {
-            await InAppPurchases.finishTransactionAsync(purchase, true);
-          }
-        });
-        onSuccess();
-      } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
-        onError('Purchase was canceled');
-      } else {
-        onError('Purchase failed. Please try again.');
-      }
-    });
-
+    purchaseCallbacks = { onSuccess, onError };
     await InAppPurchases.purchaseItemAsync(productId);
   } catch (error) {
     console.error('Error purchasing:', error);
+    purchaseCallbacks = null;
     onError('An error occurred during purchase. Please try again.');
   }
 }
@@ -100,7 +131,8 @@ export async function restorePurchases(): Promise<{
     if (results && results.length > 0) {
       const hasActive = results.some((purchase) => {
         const productId = purchase.productId;
-        return productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
+        const isSubscription = productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
+        return isSubscription && purchase.acknowledged;
       });
       
       return { success: true, hasActiveSubscription: hasActive };
@@ -129,7 +161,8 @@ export async function checkActiveSubscription(): Promise<boolean> {
     if (results && results.length > 0) {
       return results.some((purchase) => {
         const productId = purchase.productId;
-        return productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
+        const isSubscription = productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
+        return isSubscription && purchase.acknowledged;
       });
     }
 
@@ -145,6 +178,7 @@ export async function disconnectIAP(): Promise<void> {
     if (isConnected) {
       await InAppPurchases.disconnectAsync();
       isConnected = false;
+      listenerRegistered = false;
     }
   } catch (error) {
     console.error('Error disconnecting IAP:', error);

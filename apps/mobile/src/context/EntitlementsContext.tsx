@@ -5,7 +5,7 @@ import { initializeIAP, checkActiveSubscription, restorePurchases as iapRestoreP
 
 type EntitlementsContextType = {
   isPro: boolean;
-  setPro: (value: boolean) => Promise<void>;
+  setDevPro: (value: boolean) => Promise<void>;
   restorePurchases: () => Promise<boolean>;
   refreshProStatus: () => Promise<void>;
   loading: boolean;
@@ -13,7 +13,7 @@ type EntitlementsContextType = {
 
 const EntitlementsContext = createContext<EntitlementsContextType | undefined>(undefined);
 
-const PRO_STATUS_KEY = '@buzzreel_pro_status';
+const PRO_SUBSCRIPTION_KEY = '@buzzreel_pro_subscription';
 const DEV_TOGGLE_KEY = '@buzzreel_dev_pro_toggle';
 
 export function EntitlementsProvider({ children }: { children: ReactNode }) {
@@ -27,7 +27,7 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
   async function loadProStatus() {
     try {
       const devToggle = await AsyncStorage.getItem(DEV_TOGGLE_KEY);
-      if (devToggle === 'true') {
+      if (__DEV__ && devToggle === 'true') {
         setIsPro(true);
         setLoading(false);
         return;
@@ -38,30 +38,34 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
         const hasSubscription = await checkActiveSubscription();
         if (hasSubscription) {
           setIsPro(true);
-          await AsyncStorage.setItem(PRO_STATUS_KEY, 'true');
+          await AsyncStorage.setItem(PRO_SUBSCRIPTION_KEY, 'true');
         } else {
-          const cachedStatus = await AsyncStorage.getItem(PRO_STATUS_KEY);
-          setIsPro(cachedStatus === 'true');
+          await AsyncStorage.setItem(PRO_SUBSCRIPTION_KEY, 'false');
+          setIsPro(false);
         }
       } else {
-        const proStatus = await AsyncStorage.getItem(PRO_STATUS_KEY);
-        setIsPro(proStatus === 'true');
+        const cachedStatus = await AsyncStorage.getItem(PRO_SUBSCRIPTION_KEY);
+        setIsPro(cachedStatus === 'true');
       }
     } catch (error) {
       console.error('Error loading pro status:', error);
-      const cachedStatus = await AsyncStorage.getItem(PRO_STATUS_KEY);
+      const cachedStatus = await AsyncStorage.getItem(PRO_SUBSCRIPTION_KEY);
       setIsPro(cachedStatus === 'true');
     } finally {
       setLoading(false);
     }
   }
 
-  async function setPro(value: boolean): Promise<void> {
+  async function setDevPro(value: boolean): Promise<void> {
+    if (!__DEV__) {
+      console.warn('Dev toggle only works in development mode');
+      return;
+    }
     try {
       await AsyncStorage.setItem(DEV_TOGGLE_KEY, value ? 'true' : 'false');
       setIsPro(value);
     } catch (error) {
-      console.error('Error setting pro status:', error);
+      console.error('Error setting dev pro status:', error);
     }
   }
 
@@ -70,7 +74,7 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
       if (Platform.OS !== 'web') {
         const hasSubscription = await checkActiveSubscription();
         setIsPro(hasSubscription);
-        await AsyncStorage.setItem(PRO_STATUS_KEY, hasSubscription ? 'true' : 'false');
+        await AsyncStorage.setItem(PRO_SUBSCRIPTION_KEY, hasSubscription ? 'true' : 'false');
       }
     } catch (error) {
       console.error('Error refreshing pro status:', error);
@@ -88,10 +92,12 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
       
       if (result.hasActiveSubscription) {
         setIsPro(true);
-        await AsyncStorage.setItem(PRO_STATUS_KEY, 'true');
+        await AsyncStorage.setItem(PRO_SUBSCRIPTION_KEY, 'true');
         return true;
       }
       
+      setIsPro(false);
+      await AsyncStorage.setItem(PRO_SUBSCRIPTION_KEY, 'false');
       return false;
     } catch (error) {
       console.error('Error restoring purchases:', error);
@@ -102,7 +108,7 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
   return (
     <EntitlementsContext.Provider value={{
       isPro,
-      setPro,
+      setDevPro,
       restorePurchases,
       refreshProStatus,
       loading
