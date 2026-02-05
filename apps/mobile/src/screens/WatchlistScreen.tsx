@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIn
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
+import AdBanner from '../components/AdBanner';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
@@ -62,7 +63,8 @@ const WatchlistScreen = () => {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.screen}>
+    <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
         <TouchableOpacity onPress={handleSettings} style={styles.settingsButton}>
@@ -153,6 +155,8 @@ const WatchlistScreen = () => {
         })
       )}
     </ScrollView>
+    <AdBanner />
+    </View>
   );
 };
 
@@ -163,7 +167,7 @@ const styles = StyleSheet.create({
   },
   container: {
     padding: spacing.lg,
-    paddingBottom: 40
+    paddingBottom: 90
   },
   loadingContainer: {
     flex: 1,
