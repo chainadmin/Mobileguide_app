@@ -167,3 +167,11 @@ This approach keeps frontend and backend code in a single repository while maint
   - Fixed JSONB caching to store objects directly (no double-encoding)
   - Added input validation to watchlist endpoints (400 errors for bad input)
   - Server validates TMDB_API_KEY at startup and fails fast if missing
+- **Feb 2026**: Podcast buzz tracking with real view data
+  - GET /api/podcasts/buzz/show/:showId - Get view count for a podcast in a region
+  - POST /api/podcasts/buzz/show/:showId/view - Record a view when opening a podcast
+  - PodcastShowDetailScreen now uses BuzzMeter bar component with real view counts
+  - View is recorded when user opens a podcast show (tracked by region)
+  - WatchlistScreen displays followed podcasts with BuzzMeter showing regional views
+  - Fixed podcast loading in Watchlist (waits for guestId before fetching)
+  - Hidden scrollbar on PodcastShowDetailScreen for cleaner UI
