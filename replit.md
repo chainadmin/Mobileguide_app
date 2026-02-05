@@ -130,7 +130,7 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Feb 2026**: Implemented Pro monetization with real Google Play Billing
   - expo-in-app-purchases integrated for Android subscriptions
   - IAPService handles connection, purchases, restore, and subscription checks
-  - Product IDs: buzzreel_pro_monthly ($1.99/mo), buzzreel_pro_yearly ($9.99/yr)
+  - Product IDs: buzzreel_pro_monthly ($1.99/mo), buzzreel_pro_yearly ($9.99/yr), buzzreel_pro_lifetime ($24.99 one-time)
   - EntitlementsContext with isPro, setDevPro (dev-only), restorePurchases, refreshProStatus
   - Purchase listener registered once on app init with proper cleanup
   - Dev toggle only works in __DEV__ mode, separate from production subscription status

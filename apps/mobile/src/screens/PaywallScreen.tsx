@@ -5,7 +5,7 @@ import { colors, spacing, borderRadius } from '../theme';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { purchaseSubscription, PRODUCT_IDS } from '../services/iap';
 
-type PlanType = 'monthly' | 'yearly';
+type PlanType = 'monthly' | 'yearly' | 'lifetime';
 
 type Plan = {
   id: PlanType;
@@ -15,6 +15,7 @@ type Plan = {
   period: string;
   savings?: string;
   popular?: boolean;
+  isLifetime?: boolean;
 };
 
 const PLANS: Plan[] = [
@@ -33,6 +34,15 @@ const PLANS: Plan[] = [
     period: '/year',
     savings: 'Save 58%',
     popular: true
+  },
+  {
+    id: 'lifetime',
+    productId: PRODUCT_IDS.LIFETIME,
+    name: 'Lifetime',
+    price: '$24.99',
+    period: 'one-time',
+    savings: 'Best Deal',
+    isLifetime: true
   }
 ];
 
@@ -152,7 +162,7 @@ const PaywallScreen = () => {
             style={[
               styles.planCard,
               selectedPlan === plan.id && styles.planCardSelected,
-              plan.popular && styles.planCardPopular
+              (plan.popular || plan.isLifetime) && styles.planCardPopular
             ]}
             onPress={() => setSelectedPlan(plan.id)}
             activeOpacity={0.8}
@@ -161,6 +171,11 @@ const PaywallScreen = () => {
             {plan.popular && (
               <View style={styles.popularBadge}>
                 <Text style={styles.popularText}>BEST VALUE</Text>
+              </View>
+            )}
+            {plan.isLifetime && (
+              <View style={[styles.popularBadge, styles.lifetimeBadge]}>
+                <Text style={styles.popularText}>PAY ONCE, OWN FOREVER</Text>
               </View>
             )}
             <View style={styles.planContent}>
@@ -212,7 +227,7 @@ const PaywallScreen = () => {
       </TouchableOpacity>
 
       <Text style={styles.legalText}>
-        Payment will be charged to your Google Play account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Manage subscriptions in your Google Play settings.
+        Payment will be charged to your Google Play account. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Lifetime is a one-time purchase with no recurring charges. Manage purchases in your Google Play settings.
       </Text>
     </ScrollView>
   );
@@ -313,6 +328,9 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderTopLeftRadius: borderRadius.lg - 2,
     borderTopRightRadius: borderRadius.lg - 2
+  },
+  lifetimeBadge: {
+    backgroundColor: '#22c55e'
   },
   popularText: {
     color: colors.background,

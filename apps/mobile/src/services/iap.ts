@@ -3,10 +3,11 @@ import * as InAppPurchases from 'expo-in-app-purchases';
 
 export const PRODUCT_IDS = {
   MONTHLY: 'buzzreel_pro_monthly',
-  YEARLY: 'buzzreel_pro_yearly'
+  YEARLY: 'buzzreel_pro_yearly',
+  LIFETIME: 'buzzreel_pro_lifetime'
 };
 
-const ALL_PRODUCT_IDS = [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.YEARLY];
+const ALL_PRODUCT_IDS = [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.YEARLY, PRODUCT_IDS.LIFETIME];
 
 let isConnected = false;
 let listenerRegistered = false;
@@ -42,9 +43,9 @@ export async function initializeIAP(): Promise<boolean> {
   }
 }
 
-function handlePurchaseUpdate({ responseCode, results }: InAppPurchases.InAppPurchaseListener) {
+function handlePurchaseUpdate({ responseCode, results }: { responseCode: InAppPurchases.IAPResponseCode; results?: InAppPurchases.InAppPurchase[] }) {
   if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-    results?.forEach(async (purchase) => {
+    results?.forEach(async (purchase: InAppPurchases.InAppPurchase) => {
       if (!purchase.acknowledged) {
         try {
           await InAppPurchases.finishTransactionAsync(purchase, true);
@@ -131,8 +132,10 @@ export async function restorePurchases(): Promise<{
     if (results && results.length > 0) {
       const hasActive = results.some((purchase) => {
         const productId = purchase.productId;
-        const isSubscription = productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
-        return isSubscription && purchase.acknowledged;
+        const isValidPurchase = productId === PRODUCT_IDS.MONTHLY || 
+                                productId === PRODUCT_IDS.YEARLY || 
+                                productId === PRODUCT_IDS.LIFETIME;
+        return isValidPurchase && purchase.acknowledged;
       });
       
       return { success: true, hasActiveSubscription: hasActive };
@@ -161,8 +164,10 @@ export async function checkActiveSubscription(): Promise<boolean> {
     if (results && results.length > 0) {
       return results.some((purchase) => {
         const productId = purchase.productId;
-        const isSubscription = productId === PRODUCT_IDS.MONTHLY || productId === PRODUCT_IDS.YEARLY;
-        return isSubscription && purchase.acknowledged;
+        const isValidPurchase = productId === PRODUCT_IDS.MONTHLY || 
+                                productId === PRODUCT_IDS.YEARLY || 
+                                productId === PRODUCT_IDS.LIFETIME;
+        return isValidPurchase && purchase.acknowledged;
       });
     }
 
