@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, borderRadius } from '../theme';
 import { useEntitlements } from '../context/EntitlementsContext';
+import { purchaseSubscription, PRODUCT_IDS } from '../services/iap';
 
 type PlanType = 'monthly' | 'yearly';
 
 type Plan = {
   id: PlanType;
+  productId: string;
   name: string;
   price: string;
   period: string;
@@ -18,12 +20,14 @@ type Plan = {
 const PLANS: Plan[] = [
   {
     id: 'monthly',
+    productId: PRODUCT_IDS.MONTHLY,
     name: 'Monthly',
     price: '$1.99',
     period: '/month'
   },
   {
     id: 'yearly',
+    productId: PRODUCT_IDS.YEARLY,
     name: 'Yearly',
     price: '$9.99',
     period: '/year',
@@ -57,19 +61,56 @@ const PRO_FEATURES = [
 
 const PaywallScreen = () => {
   const navigation = useNavigation();
-  const { restorePurchases } = useEntitlements();
+  const { restorePurchases, refreshProStatus } = useEntitlements();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
+  const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
 
-  const handleSubscribe = () => {
-    Alert.alert(
-      'Coming Soon',
-      'In-app purchases will be available in the next update. For now, use the dev toggle in Settings to test Pro features.',
-      [{ text: 'OK' }]
+  const handleSubscribe = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Not Available',
+        'Subscriptions are available in the mobile app. Download from the App Store or Google Play.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const plan = PLANS.find(p => p.id === selectedPlan);
+    if (!plan) return;
+
+    setPurchasing(true);
+
+    purchaseSubscription(
+      plan.productId,
+      async () => {
+        setPurchasing(false);
+        await refreshProStatus();
+        Alert.alert(
+          'Welcome to Pro!',
+          'Thank you for subscribing. Enjoy all Pro features!',
+          [{ text: 'Get Started', onPress: () => navigation.goBack() }]
+        );
+      },
+      (error) => {
+        setPurchasing(false);
+        if (!error.includes('canceled')) {
+          Alert.alert('Purchase Failed', error);
+        }
+      }
     );
   };
 
   const handleRestore = async () => {
+    if (Platform.OS === 'web') {
+      Alert.alert(
+        'Not Available',
+        'Restore purchases is available in the mobile app.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     setRestoring(true);
     const success = await restorePurchases();
     setRestoring(false);
@@ -115,6 +156,7 @@ const PaywallScreen = () => {
             ]}
             onPress={() => setSelectedPlan(plan.id)}
             activeOpacity={0.8}
+            disabled={purchasing}
           >
             {plan.popular && (
               <View style={styles.popularBadge}>
@@ -146,17 +188,22 @@ const PaywallScreen = () => {
       </View>
 
       <TouchableOpacity
-        style={styles.subscribeButton}
+        style={[styles.subscribeButton, purchasing && styles.subscribeButtonDisabled]}
         onPress={handleSubscribe}
         activeOpacity={0.9}
+        disabled={purchasing}
       >
-        <Text style={styles.subscribeText}>Subscribe Now</Text>
+        {purchasing ? (
+          <ActivityIndicator color={colors.background} />
+        ) : (
+          <Text style={styles.subscribeText}>Subscribe Now</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity
         style={styles.restoreButton}
         onPress={handleRestore}
-        disabled={restoring}
+        disabled={restoring || purchasing}
         activeOpacity={0.7}
       >
         <Text style={styles.restoreText}>
@@ -165,7 +212,7 @@ const PaywallScreen = () => {
       </TouchableOpacity>
 
       <Text style={styles.legalText}>
-        Payment will be charged to your Apple/Google account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period.
+        Payment will be charged to your Google Play account. Subscription automatically renews unless canceled at least 24 hours before the end of the current period. Manage subscriptions in your Google Play settings.
       </Text>
     </ScrollView>
   );
@@ -331,6 +378,9 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginBottom: spacing.md
+  },
+  subscribeButtonDisabled: {
+    opacity: 0.7
   },
   subscribeText: {
     color: colors.background,
