@@ -9,6 +9,11 @@ import { useRegion } from '../context/RegionContext';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { getGuestId } from '../services/guestId';
 
+const stripHtml = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type ShowDetailRouteProp = RouteProp<RootStackParamList, 'PodcastShowDetail'>;
 
@@ -184,7 +189,7 @@ const PodcastShowDetailScreen = () => {
         </View>
       </View>
 
-      <Text style={styles.description}>{show.description}</Text>
+      <Text style={styles.description}>{stripHtml(show.description)}</Text>
 
       <Text style={styles.sectionTitle}>Episodes</Text>
       
@@ -199,8 +204,8 @@ const PodcastShowDetailScreen = () => {
               onPress={() => navigation.navigate('PodcastEpisodeDetail', { episodeId: episode.id })}
               activeOpacity={0.8}
             >
-              <Text style={styles.episodeTitle} numberOfLines={2}>{episode.title}</Text>
-              <Text style={styles.episodeDescription} numberOfLines={2}>{episode.description}</Text>
+              <Text style={styles.episodeTitle} numberOfLines={2}>{stripHtml(episode.title)}</Text>
+              <Text style={styles.episodeDescription} numberOfLines={2}>{stripHtml(episode.description)}</Text>
               <View style={styles.episodeMeta}>
                 <Text style={styles.episodeMetaText}>{formatDate(episode.datePublished)}</Text>
                 <Text style={styles.episodeMetaDot}>•</Text>

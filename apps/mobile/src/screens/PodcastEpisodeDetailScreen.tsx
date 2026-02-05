@@ -8,6 +8,11 @@ import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import { getGuestId } from '../services/guestId';
 
+const stripHtml = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 type EpisodeDetailRouteProp = RouteProp<RootStackParamList, 'PodcastEpisodeDetail'>;
 
@@ -158,7 +163,7 @@ const PodcastEpisodeDetailScreen = () => {
       )}
 
       <Text style={styles.sectionTitle}>About this Episode</Text>
-      <Text style={styles.description}>{episode.description}</Text>
+      <Text style={styles.description}>{stripHtml(episode.description)}</Text>
     </ScrollView>
   );
 };

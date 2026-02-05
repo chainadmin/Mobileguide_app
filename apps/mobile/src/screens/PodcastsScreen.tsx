@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, Platform } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
@@ -8,6 +8,7 @@ import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
 import { useEntitlements } from '../context/EntitlementsContext';
+import { getGuestId } from '../services/guestId';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -28,6 +29,12 @@ type PodcastEpisode = {
   image: string;
   datePublished: number;
   duration: number;
+  isFollowing?: boolean;
+};
+
+const stripHtml = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
 };
 
 const API_BASE = 'https://welcoming-elegance-production-9299.up.railway.app';
@@ -39,21 +46,33 @@ const PodcastsScreen = () => {
   const [buzzingNow, setBuzzingNow] = useState<PodcastShow[]>([]);
   const [newDrops, setNewDrops] = useState<PodcastEpisode[]>([]);
   const [topInRegion, setTopInRegion] = useState<PodcastShow[]>([]);
+  const [followingShows, setFollowingShows] = useState<PodcastShow[]>([]);
+  const [followingIds, setFollowingIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [guestId, setGuestId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const init = async () => {
+      const id = await getGuestId();
+      setGuestId(id);
+    };
+    init();
+  }, []);
 
   const fetchPodcasts = useCallback(async () => {
-    if (!region) return;
+    if (!region || !guestId) return;
     
     try {
       setLoading(true);
       setError(null);
       const regionCode = region.code;
       
-      const [buzzRes, newRes, topRes] = await Promise.all([
+      const [buzzRes, newRes, topRes, followsRes] = await Promise.all([
         fetch(`${API_BASE}/api/podcasts/buzz?region=${regionCode}`),
         fetch(`${API_BASE}/api/podcasts/new?region=${regionCode}`),
-        fetch(`${API_BASE}/api/podcasts/top?region=${regionCode}`)
+        fetch(`${API_BASE}/api/podcasts/top?region=${regionCode}`),
+        fetch(`${API_BASE}/api/podcasts/follows?guestId=${guestId}`)
       ]);
 
       if (buzzRes.ok) {
@@ -70,13 +89,20 @@ const PodcastsScreen = () => {
         const topData = await topRes.json();
         setTopInRegion(topData.shows || []);
       }
+
+      if (followsRes.ok) {
+        const followsData = await followsRes.json();
+        const shows = followsData.shows || [];
+        setFollowingShows(shows);
+        setFollowingIds(new Set(shows.map((s: PodcastShow) => s.id)));
+      }
     } catch (err) {
       console.error('Error fetching podcasts:', err);
       setError('Unable to load podcasts. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [region]);
+  }, [region, guestId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -103,7 +129,7 @@ const PodcastsScreen = () => {
     return date.toLocaleDateString();
   };
 
-  const renderShowCard = (show: PodcastShow) => (
+  const renderShowCard = (show: PodcastShow, showFollowBadge = false) => (
     <TouchableOpacity
       key={show.id}
       style={styles.showCard}
@@ -117,44 +143,62 @@ const PodcastsScreen = () => {
             <Text style={styles.buzzBadgeText}>🔥 {show.buzzScore}</Text>
           </View>
         )}
+        {(showFollowBadge || followingIds.has(show.id)) && (
+          <View style={styles.followingBadge}>
+            <Text style={styles.followingBadgeText}>✓</Text>
+          </View>
+        )}
       </View>
       <View style={styles.showInfo}>
-        <Text style={styles.showTitle} numberOfLines={2}>{show.title}</Text>
-        <Text style={styles.showAuthor} numberOfLines={1}>{show.author}</Text>
+        <Text style={styles.showTitle} numberOfLines={2}>{stripHtml(show.title)}</Text>
+        <Text style={styles.showAuthor} numberOfLines={1}>{stripHtml(show.author)}</Text>
       </View>
     </TouchableOpacity>
   );
 
-  const renderEpisodeCard = (episode: PodcastEpisode) => (
-    <TouchableOpacity
-      key={episode.id}
-      style={styles.episodeCard}
-      onPress={() => navigation.navigate('PodcastEpisodeDetail', { episodeId: episode.id })}
-      activeOpacity={0.8}
-    >
-      <Image source={{ uri: episode.image }} style={styles.episodeImage} />
-      <View style={styles.episodeInfo}>
-        <Text style={styles.episodeShowTitle} numberOfLines={1}>{episode.showTitle}</Text>
-        <Text style={styles.episodeTitle} numberOfLines={2}>{episode.title}</Text>
-        <View style={styles.episodeMeta}>
-          <Text style={styles.episodeMetaText}>{formatDate(episode.datePublished)}</Text>
-          <Text style={styles.episodeMetaDot}>•</Text>
-          <Text style={styles.episodeMetaText}>{formatDuration(episode.duration)}</Text>
+  const renderEpisodeCard = (episode: PodcastEpisode) => {
+    const isShowFollowed = followingIds.has(episode.showId);
+    return (
+      <TouchableOpacity
+        key={episode.id}
+        style={styles.episodeCard}
+        onPress={() => navigation.navigate('PodcastEpisodeDetail', { episodeId: episode.id })}
+        activeOpacity={0.8}
+      >
+        <View style={styles.episodeImageContainer}>
+          <Image source={{ uri: episode.image }} style={styles.episodeImage} />
+          {isShowFollowed && (
+            <View style={styles.episodeFollowBadge}>
+              <Text style={styles.episodeFollowBadgeText}>✓</Text>
+            </View>
+          )}
         </View>
-      </View>
-    </TouchableOpacity>
-  );
+        <View style={styles.episodeInfo}>
+          <View style={styles.episodeShowRow}>
+            <Text style={styles.episodeShowTitle} numberOfLines={1}>{stripHtml(episode.showTitle)}</Text>
+            {isShowFollowed && <Text style={styles.followingLabel}>Following</Text>}
+          </View>
+          <Text style={styles.episodeTitle} numberOfLines={2}>{stripHtml(episode.title)}</Text>
+          <View style={styles.episodeMeta}>
+            <Text style={styles.episodeMetaText}>{formatDate(episode.datePublished)}</Text>
+            <Text style={styles.episodeMetaDot}>•</Text>
+            <Text style={styles.episodeMetaText}>{formatDuration(episode.duration)}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
-  const renderHorizontalShows = (shows: PodcastShow[], title: string, subtitle: string) => (
+  const renderHorizontalShows = (shows: PodcastShow[], title: string, subtitle: string, showFollowBadges = false) => (
     <>
       <SectionHeader title={title} subtitle={subtitle} />
       <ScrollView 
         horizontal 
         showsHorizontalScrollIndicator={false} 
-        style={styles.horizontalScroll}
+        style={[styles.horizontalScroll, Platform.OS === 'web' && { overflow: 'hidden' as const }]}
         contentContainerStyle={styles.horizontalContainer}
       >
-        {shows.map(renderShowCard)}
+        {shows.map(show => renderShowCard(show, showFollowBadges))}
       </ScrollView>
     </>
   );
@@ -193,6 +237,13 @@ const PodcastsScreen = () => {
           <Text style={styles.changeText}>Change</Text>
         </TouchableOpacity>
       </View>
+
+      {followingShows.length > 0 && renderHorizontalShows(
+        followingShows,
+        'YOUR SHOWS',
+        'Podcasts you follow.',
+        true
+      )}
 
       {buzzingNow.length > 0 && renderHorizontalShows(
         buzzingNow, 
@@ -339,6 +390,22 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700'
   },
+  followingBadge: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    backgroundColor: colors.accent,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  followingBadgeText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '700'
+  },
   showInfo: {
     gap: 2
   },
@@ -364,10 +431,29 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border
   },
+  episodeImageContainer: {
+    position: 'relative'
+  },
   episodeImage: {
     width: 80,
     height: 80,
     backgroundColor: colors.skeleton
+  },
+  episodeFollowBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: colors.accent,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  episodeFollowBadgeText: {
+    color: colors.background,
+    fontSize: 10,
+    fontWeight: '700'
   },
   episodeInfo: {
     flex: 1,
@@ -375,12 +461,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 4
   },
+  episodeShowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6
+  },
   episodeShowTitle: {
     color: colors.accent,
     fontSize: 11,
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 0.5
+    letterSpacing: 0.5,
+    flex: 1
+  },
+  followingLabel: {
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '500',
+    backgroundColor: colors.surface,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: borderRadius.sm
   },
   episodeTitle: {
     color: colors.textPrimary,
