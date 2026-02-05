@@ -14,6 +14,7 @@ import PodcastsScreen from './src/screens/PodcastsScreen';
 import PodcastShowDetailScreen from './src/screens/PodcastShowDetailScreen';
 import PodcastEpisodeDetailScreen from './src/screens/PodcastEpisodeDetailScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
+import SearchScreen from './src/screens/SearchScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
 import TitleDetailScreen from './src/screens/TitleDetailScreen';
@@ -33,6 +34,7 @@ export type RootStackParamList = {
   Paywall: undefined;
   Settings: undefined;
   PlatformFilters: undefined;
+  Search: undefined;
 };
 
 const darkTheme = {
@@ -130,6 +132,11 @@ const AppContent = () => {
                 name="PlatformFilters"
                 component={PlatformFiltersScreen}
                 options={{ title: 'Platform Filters' }}
+              />
+              <Stack.Screen
+                name="Search"
+                component={SearchScreen}
+                options={{ title: 'Search' }}
               />
               <Stack.Screen
                 name="PodcastShowDetail"

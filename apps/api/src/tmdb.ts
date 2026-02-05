@@ -98,3 +98,12 @@ export async function getUpcoming(region: string): Promise<TmdbTitle[]> {
   });
   return data.results.map(m => ({ ...m, media_type: 'movie' }));
 }
+
+export async function searchMulti(queryText: string, page: number = 1): Promise<TmdbTitle[]> {
+  const data = await fetchTmdb<{ results: TmdbTitle[] }>('/search/multi', {
+    query: queryText,
+    page: String(page),
+    include_adult: 'false'
+  });
+  return data.results.filter(r => r.media_type === 'movie' || r.media_type === 'tv');
+}

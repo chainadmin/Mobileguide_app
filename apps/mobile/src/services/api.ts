@@ -103,3 +103,38 @@ export async function removeFromWatchlistApi(
     return [];
   }
 }
+
+export type SearchResultItem = {
+  id: number;
+  title?: string;
+  name?: string;
+  poster_path: string | null;
+  media_type: 'movie' | 'tv';
+  isBuzzing?: boolean;
+  buzzScore?: number;
+};
+
+export type SearchResults = {
+  buzzing: SearchResultItem[];
+  upcoming: SearchResultItem[];
+  fallback: SearchResultItem[];
+};
+
+export async function searchContent(
+  query: string,
+  region: string,
+  isPro: boolean
+): Promise<SearchResults> {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/search?q=${encodeURIComponent(query)}&region=${region}&isPro=${isPro}`
+    );
+    if (!response.ok) {
+      return { buzzing: [], upcoming: [], fallback: [] };
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching:', error);
+    return { buzzing: [], upcoming: [], fallback: [] };
+  }
+}

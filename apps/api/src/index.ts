@@ -7,7 +7,9 @@ import {
   getPopularTV,
   getTitleDetails,
   getWatchProviders,
-  getUpcoming
+  getUpcoming,
+  searchMulti,
+  TmdbTitle
 } from './tmdb';
 import {
   getTrendingPodcasts,
@@ -297,6 +299,91 @@ app.get('/api/cache/upcoming/:region', async (req, res) => {
   } catch (error) {
     console.error('Error getting cached upcoming:', error);
     res.status(500).json({ error: 'Failed to get upcoming content' });
+  }
+});
+
+app.get('/api/search', async (req, res) => {
+  try {
+    const q = (req.query.q as string || '').trim().toLowerCase();
+    const region = (req.query.region as string) || 'US';
+    const isPro = req.query.isPro === 'true';
+    
+    if (!q || q.length < 2) {
+      return res.json({ buzzing: [], upcoming: [], fallback: [] });
+    }
+    
+    const [trendingCache, upcomingCache, buzzResult] = await Promise.all([
+      query(
+        'SELECT data FROM cached_trending WHERE region = $1 AND media_type = $2 AND time_window = $3',
+        [region, 'all', 'day']
+      ),
+      query(
+        'SELECT data FROM cached_trending WHERE region = $1 AND media_type = $2 AND time_window = $3',
+        [region, 'upcoming', 'week']
+      ),
+      query(
+        'SELECT media_type, tmdb_id, view_count FROM buzz_views WHERE region = $1 ORDER BY view_count DESC LIMIT 50',
+        [region]
+      )
+    ]);
+    
+    const buzzMap = new Map<string, number>();
+    for (const row of buzzResult.rows) {
+      buzzMap.set(`${row.media_type}-${row.tmdb_id}`, row.view_count);
+    }
+    
+    let trendingTitles: TmdbTitle[] = [];
+    if (trendingCache.rows[0]?.data) {
+      const tData = trendingCache.rows[0].data;
+      if (tData.movies) trendingTitles.push(...tData.movies);
+      if (tData.tv) trendingTitles.push(...tData.tv);
+    }
+    
+    let upcomingTitles: TmdbTitle[] = [];
+    if (upcomingCache.rows[0]?.data) {
+      upcomingTitles = upcomingCache.rows[0].data;
+    }
+    
+    const matchTitle = (item: TmdbTitle) => {
+      const title = (item.title || item.name || '').toLowerCase();
+      return title.includes(q);
+    };
+    
+    const buzzingMatches = trendingTitles
+      .filter(matchTitle)
+      .map(item => {
+        const key = `${item.media_type}-${item.id}`;
+        return { ...item, isBuzzing: true, buzzScore: buzzMap.get(key) || 0 };
+      })
+      .sort((a, b) => b.buzzScore - a.buzzScore)
+      .slice(0, 10);
+    
+    const upcomingMatches = upcomingTitles
+      .filter(matchTitle)
+      .slice(0, 5);
+    
+    let fallbackResults: any[] = [];
+    const buzzingIds = new Set(buzzingMatches.map(b => `${b.media_type}-${b.id}`));
+    const upcomingIds = new Set(upcomingMatches.map(u => `${u.media_type}-${u.id}`));
+    
+    const tmdbResults = await searchMulti(q);
+    const limit = isPro ? 20 : 5;
+    fallbackResults = tmdbResults
+      .filter(item => {
+        const key = `${item.media_type}-${item.id}`;
+        return !buzzingIds.has(key) && !upcomingIds.has(key);
+      })
+      .slice(0, limit)
+      .map(item => ({ ...item, isBuzzing: false, buzzScore: 0 }));
+    
+    res.json({
+      buzzing: buzzingMatches,
+      upcoming: upcomingMatches,
+      fallback: fallbackResults
+    });
+  } catch (error) {
+    console.error('Error searching:', error);
+    res.status(500).json({ error: 'Search failed', buzzing: [], upcoming: [], fallback: [] });
   }
 });
 

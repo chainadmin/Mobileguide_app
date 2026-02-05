@@ -219,12 +219,21 @@ const TrendingScreen = () => {
           <Text style={styles.regionText}>{region?.name || 'Select Region'}</Text>
           <Text style={styles.changeText}>Change</Text>
         </TouchableOpacity>
-        {streak > 0 && (
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakIcon}>🔥</Text>
-            <Text style={styles.streakText}>{streak} day{streak !== 1 ? 's' : ''}</Text>
-          </View>
-        )}
+        <View style={styles.headerRight}>
+          {streak > 0 && (
+            <View style={styles.streakBadge}>
+              <Text style={styles.streakIcon}>🔥</Text>
+              <Text style={styles.streakText}>{streak} day{streak !== 1 ? 's' : ''}</Text>
+            </View>
+          )}
+          <TouchableOpacity 
+            style={styles.searchButton}
+            onPress={() => navigation.navigate('Search')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.searchIcon}>🔍</Text>
+          </TouchableOpacity>
+        </View>
       </View>
       
       {activeProviderIds && (
@@ -315,6 +324,11 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600'
   },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm
+  },
   streakBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -331,6 +345,16 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontSize: 13,
     fontWeight: '700'
+  },
+  searchButton: {
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  searchIcon: {
+    fontSize: 18
   },
   filterBanner: {
     flexDirection: 'row',

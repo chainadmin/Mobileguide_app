@@ -46,6 +46,7 @@ This approach keeps frontend and backend code in a single repository while maint
   - `GET /api/cache/title/:mediaType/:tmdbId` - Get cached title details (24hr cache)
   - `GET /api/cache/providers/:mediaType/:tmdbId/:region` - Get cached providers (12hr cache)
   - `GET /api/cache/upcoming/:region` - Get cached upcoming releases (6hr cache)
+  - `GET /api/search?q=&region=&isPro=` - Search titles (buzzing first, then TMDB fallback; Pro gets unlimited fallback)
   - `GET /api/podcasts/buzz?region=` - Get buzzing podcasts (6hr cache)
   - `GET /api/podcasts/new?region=` - Get recent podcast episodes (6hr cache)
   - `GET /api/podcasts/top?region=` - Get top podcasts in region (6hr cache)
@@ -181,3 +182,11 @@ This approach keeps frontend and backend code in a single repository while maint
   - AdBanner component shows real Google ads on mobile (custom dev build required)
   - Falls back to styled placeholder on web and Expo Go
   - Ads hidden for Pro subscribers (ad-free experience)
+- **Feb 2026**: Added Search feature with buzz-based ranking
+  - Search icon (🔍) in Trending screen header opens SearchScreen
+  - SearchScreen shows: Recent Searches, Suggested Now (🔥), Upcoming (📅)
+  - Search prioritizes buzzing/trending results first, then TMDB fallback
+  - Free users get 5 fallback results from TMDB, Pro gets unlimited
+  - Results show "🔥 Buzzing" tag for trending items, "Not trending" for fallback
+  - Backend GET /api/search endpoint searches cached trending + upcoming + TMDB
+  - Recent searches stored locally in AsyncStorage
