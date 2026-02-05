@@ -10,6 +10,9 @@ import { AlertsProvider } from './src/context/AlertsContext';
 
 import PaywallScreen from './src/screens/PaywallScreen';
 import PlatformFiltersScreen from './src/screens/PlatformFiltersScreen';
+import PodcastsScreen from './src/screens/PodcastsScreen';
+import PodcastShowDetailScreen from './src/screens/PodcastShowDetailScreen';
+import PodcastEpisodeDetailScreen from './src/screens/PodcastEpisodeDetailScreen';
 import RegionSelectScreen from './src/screens/RegionSelectScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SplashScreen from './src/screens/SplashScreen';
@@ -23,6 +26,8 @@ export type RootStackParamList = {
   RegionSelect: undefined;
   Tabs: undefined;
   TitleDetail: { mediaType: 'movie' | 'tv'; tmdbId: number };
+  PodcastShowDetail: { showId: number };
+  PodcastEpisodeDetail: { episodeId: number };
   Paywall: undefined;
   Settings: undefined;
   PlatformFilters: undefined;
@@ -65,6 +70,7 @@ const Tabs = () => {
     >
       <Tab.Screen name="Trending" component={TrendingScreen} />
       <Tab.Screen name="Upcoming" component={UpcomingScreen} />
+      <Tab.Screen name="Podcasts" component={PodcastsScreen} />
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
     </Tab.Navigator>
   );
@@ -119,6 +125,16 @@ const AppContent = () => {
                 name="PlatformFilters"
                 component={PlatformFiltersScreen}
                 options={{ title: 'Platform Filters' }}
+              />
+              <Stack.Screen
+                name="PodcastShowDetail"
+                component={PodcastShowDetailScreen}
+                options={{ title: 'Podcast' }}
+              />
+              <Stack.Screen
+                name="PodcastEpisodeDetail"
+                component={PodcastEpisodeDetailScreen}
+                options={{ title: 'Episode' }}
               />
             </Stack.Navigator>
             </NavigationContainer>

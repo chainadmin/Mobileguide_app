@@ -9,6 +9,16 @@ import {
   getWatchProviders,
   getUpcoming
 } from './tmdb';
+import {
+  getTrendingPodcasts,
+  getRecentEpisodes,
+  getPodcastById,
+  getEpisodeById,
+  getEpisodesByShowId,
+  validatePodcastApiKeys,
+  PodcastShow,
+  PodcastEpisode
+} from './podcast';
 
 const app = express();
 const port = process.env.PORT ? Number(process.env.PORT) : 4000;
@@ -20,15 +30,6 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', service: 'buzzreel-api' });
 });
 
-app.get('/setup-db', async (_req, res) => {
-  try {
-    await initDb();
-    res.json({ status: 'ok', message: 'Database tables created successfully' });
-  } catch (error) {
-    console.error('Error setting up database:', error);
-    res.status(500).json({ error: 'Failed to setup database', details: String(error) });
-  }
-});
 
 app.get('/api/buzz/:region/:mediaType/:tmdbId', async (req, res) => {
   try {
@@ -98,7 +99,15 @@ app.get('/api/watchlist/:guestId', async (req, res) => {
 app.post('/api/watchlist/:guestId', async (req, res) => {
   try {
     const { guestId } = req.params;
-    const { tmdbId, mediaType, title, posterPath } = req.body;
+    const { tmdbId, mediaType, title, posterPath, isPro } = req.body;
+    
+    if (!tmdbId || !mediaType || !title) {
+      return res.status(400).json({ error: 'Missing required fields: tmdbId, mediaType, title' });
+    }
+    
+    if (typeof tmdbId !== 'number' || !['movie', 'tv'].includes(mediaType)) {
+      return res.status(400).json({ error: 'Invalid field types: tmdbId must be number, mediaType must be movie or tv' });
+    }
     
     const countResult = await query(
       'SELECT COUNT(*) as count FROM watchlists WHERE guest_id = $1',
@@ -106,7 +115,7 @@ app.post('/api/watchlist/:guestId', async (req, res) => {
     );
     const count = parseInt(countResult.rows[0].count, 10);
     
-    if (count >= 10) {
+    if (!isPro && count >= 10) {
       return res.status(403).json({ error: 'Watchlist limit reached', limitReached: true });
     }
     
@@ -114,7 +123,7 @@ app.post('/api/watchlist/:guestId', async (req, res) => {
       `INSERT INTO watchlists (guest_id, tmdb_id, media_type, title, poster_path)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (guest_id, tmdb_id, media_type) DO NOTHING`,
-      [guestId, tmdbId, mediaType, title, posterPath]
+      [guestId, tmdbId, mediaType, title, posterPath || null]
     );
     
     const result = await query(
@@ -191,7 +200,7 @@ app.get('/api/cache/trending/:region', async (req, res) => {
        VALUES ($1, $2, $3, $4, NOW())
        ON CONFLICT (region, media_type, time_window)
        DO UPDATE SET data = $4, cached_at = NOW()`,
-      [region, mediaType, timeWindow, JSON.stringify(data)]
+      [region, mediaType, timeWindow, data]
     );
     
     res.json({ data, cached: false });
@@ -221,7 +230,7 @@ app.get('/api/cache/title/:mediaType/:tmdbId', async (req, res) => {
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (tmdb_id, media_type)
        DO UPDATE SET data = $3, cached_at = NOW()`,
-      [tmdbId, mediaType, JSON.stringify(data)]
+      [tmdbId, mediaType, data]
     );
     
     res.json({ data, cached: false });
@@ -251,7 +260,7 @@ app.get('/api/cache/providers/:mediaType/:tmdbId/:region', async (req, res) => {
        VALUES ($1, $2, $3, $4, NOW())
        ON CONFLICT (tmdb_id, media_type, region)
        DO UPDATE SET data = $4, cached_at = NOW()`,
-      [tmdbId, mediaType, region, JSON.stringify(data)]
+      [tmdbId, mediaType, region, data]
     );
     
     res.json({ data, cached: false });
@@ -281,7 +290,7 @@ app.get('/api/cache/upcoming/:region', async (req, res) => {
        VALUES ($1, 'upcoming', 'week', $2, NOW())
        ON CONFLICT (region, media_type, time_window)
        DO UPDATE SET data = $2, cached_at = NOW()`,
-      [region, JSON.stringify(data)]
+      [region, data]
     );
     
     res.json({ data, cached: false });
@@ -405,11 +414,392 @@ app.get('/terms', (_req, res) => {
   `);
 });
 
+const PODCAST_CACHE_HOURS = 6;
+
+function isPodcastCacheValid(cachedAt: Date): boolean {
+  const now = new Date();
+  const diff = (now.getTime() - new Date(cachedAt).getTime()) / (1000 * 60 * 60);
+  return diff < PODCAST_CACHE_HOURS;
+}
+
+app.get('/api/podcasts/buzz', async (req, res) => {
+  try {
+    const region = (req.query.region as string) || 'US';
+    const cacheKey = `buzz_${region}`;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_podcasts WHERE cache_key = $1',
+      [cacheKey]
+    );
+    
+    if (cached.rows[0] && isPodcastCacheValid(cached.rows[0].cached_at)) {
+      const data = typeof cached.rows[0].data === 'string' 
+        ? JSON.parse(cached.rows[0].data) 
+        : cached.rows[0].data;
+      return res.json(data);
+    }
+    
+    await computePodcastBuzz(region);
+    
+    const buzzResult = await query(
+      `SELECT entity_id, score FROM podcast_buzz_cache
+       WHERE region = $1 AND entity_type = 'show'
+       ORDER BY score DESC LIMIT 20`,
+      [region]
+    );
+    
+    let shows: any[] = [];
+    
+    if (buzzResult.rows.length > 0) {
+      const showIds = buzzResult.rows.map(r => r.entity_id);
+      const showResult = await query(
+        `SELECT id, title, author, image, description, language, episode_count
+         FROM podcast_shows WHERE id = ANY($1)`,
+        [showIds]
+      );
+      
+      const showMap = new Map(showResult.rows.map(s => [s.id, s]));
+      const buzzMap = new Map(buzzResult.rows.map(r => [r.entity_id, r.score]));
+      
+      for (const showId of showIds) {
+        const show = showMap.get(showId);
+        if (show) {
+          shows.push({
+            id: show.id,
+            title: show.title,
+            author: show.author,
+            image: show.image,
+            description: show.description || '',
+            language: show.language || 'en',
+            episodeCount: show.episode_count || 0,
+            buzzScore: buzzMap.get(showId) || 0
+          });
+        }
+      }
+    }
+    
+    if (shows.length < 5) {
+      const trending = await getTrendingPodcasts(20, 'en');
+      shows = trending;
+    }
+    
+    const responseData = { shows, region };
+    
+    await query(
+      `INSERT INTO cached_podcasts (cache_key, data, cached_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (cache_key)
+       DO UPDATE SET data = $2, cached_at = NOW()`,
+      [cacheKey, responseData]
+    );
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error getting podcast buzz:', error);
+    res.status(500).json({ error: 'Failed to get podcast buzz', shows: [] });
+  }
+});
+
+app.get('/api/podcasts/new', async (req, res) => {
+  try {
+    const region = (req.query.region as string) || 'US';
+    const cacheKey = `new_${region}`;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_podcasts WHERE cache_key = $1',
+      [cacheKey]
+    );
+    
+    if (cached.rows[0] && isPodcastCacheValid(cached.rows[0].cached_at)) {
+      const data = typeof cached.rows[0].data === 'string' 
+        ? JSON.parse(cached.rows[0].data) 
+        : cached.rows[0].data;
+      return res.json(data);
+    }
+    
+    const episodes = await getRecentEpisodes(20, 'en');
+    const responseData = { episodes, region };
+    
+    await query(
+      `INSERT INTO cached_podcasts (cache_key, data, cached_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (cache_key)
+       DO UPDATE SET data = $2, cached_at = NOW()`,
+      [cacheKey, responseData]
+    );
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error getting new podcast episodes:', error);
+    res.status(500).json({ error: 'Failed to get new episodes', episodes: [] });
+  }
+});
+
+app.get('/api/podcasts/top', async (req, res) => {
+  try {
+    const region = (req.query.region as string) || 'US';
+    const cacheKey = `top_${region}`;
+    
+    const cached = await query(
+      'SELECT data, cached_at FROM cached_podcasts WHERE cache_key = $1',
+      [cacheKey]
+    );
+    
+    if (cached.rows[0] && isPodcastCacheValid(cached.rows[0].cached_at)) {
+      const data = typeof cached.rows[0].data === 'string' 
+        ? JSON.parse(cached.rows[0].data) 
+        : cached.rows[0].data;
+      return res.json(data);
+    }
+    
+    const shows = await getTrendingPodcasts(20, 'en');
+    const responseData = { shows, region };
+    
+    await query(
+      `INSERT INTO cached_podcasts (cache_key, data, cached_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (cache_key)
+       DO UPDATE SET data = $2, cached_at = NOW()`,
+      [cacheKey, responseData]
+    );
+    
+    res.json(responseData);
+  } catch (error) {
+    console.error('Error getting top podcasts:', error);
+    res.status(500).json({ error: 'Failed to get top podcasts', shows: [] });
+  }
+});
+
+app.get('/api/podcasts/show/:id', async (req, res) => {
+  try {
+    const showId = parseInt(req.params.id, 10);
+    const guestId = req.query.guestId as string;
+    
+    const show = await getPodcastById(showId);
+    if (!show) {
+      return res.status(404).json({ error: 'Show not found' });
+    }
+    
+    let isFollowing = false;
+    if (guestId) {
+      const followResult = await query(
+        'SELECT 1 FROM podcast_follows WHERE guest_id = $1 AND show_id = $2',
+        [guestId, showId]
+      );
+      isFollowing = followResult.rows.length > 0;
+    }
+    
+    res.json({ show, isFollowing });
+  } catch (error) {
+    console.error('Error getting podcast show:', error);
+    res.status(500).json({ error: 'Failed to get show details' });
+  }
+});
+
+app.get('/api/podcasts/show/:id/episodes', async (req, res) => {
+  try {
+    const showId = parseInt(req.params.id, 10);
+    const episodes = await getEpisodesByShowId(showId, 50);
+    res.json({ episodes });
+  } catch (error) {
+    console.error('Error getting show episodes:', error);
+    res.status(500).json({ error: 'Failed to get episodes', episodes: [] });
+  }
+});
+
+app.get('/api/podcasts/episode/:id', async (req, res) => {
+  try {
+    const episodeId = parseInt(req.params.id, 10);
+    const episode = await getEpisodeById(episodeId);
+    
+    if (!episode) {
+      return res.status(404).json({ error: 'Episode not found' });
+    }
+    
+    res.json({ episode });
+  } catch (error) {
+    console.error('Error getting podcast episode:', error);
+    res.status(500).json({ error: 'Failed to get episode details' });
+  }
+});
+
+app.post('/api/podcasts/events', async (req, res) => {
+  try {
+    const { guestId, region, eventType, showId, episodeId } = req.body;
+    
+    if (!region || !eventType) {
+      return res.status(400).json({ error: 'Missing required fields: region, eventType' });
+    }
+    
+    await query(
+      `INSERT INTO podcast_events (guest_id, region, event_type, show_id, episode_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [guestId || null, region, eventType, showId || null, episodeId || null]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error recording podcast event:', error);
+    res.status(500).json({ error: 'Failed to record event' });
+  }
+});
+
+app.get('/api/podcasts/follows', async (req, res) => {
+  try {
+    const guestId = req.query.guestId as string;
+    
+    if (!guestId) {
+      return res.status(400).json({ error: 'Missing guestId' });
+    }
+    
+    const result = await query(
+      `SELECT pf.show_id, pf.region, pf.added_at, ps.title, ps.author, ps.image
+       FROM podcast_follows pf
+       LEFT JOIN podcast_shows ps ON pf.show_id = ps.id
+       WHERE pf.guest_id = $1
+       ORDER BY pf.added_at DESC`,
+      [guestId]
+    );
+    
+    res.json({ follows: result.rows });
+  } catch (error) {
+    console.error('Error getting podcast follows:', error);
+    res.status(500).json({ error: 'Failed to get follows', follows: [] });
+  }
+});
+
+app.post('/api/podcasts/follows/add', async (req, res) => {
+  try {
+    const { guestId, showId, region, isPro } = req.body;
+    
+    if (!guestId || !showId || !region) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const countResult = await query(
+      'SELECT COUNT(*) as count FROM podcast_follows WHERE guest_id = $1',
+      [guestId]
+    );
+    const count = parseInt(countResult.rows[0].count, 10);
+    
+    if (!isPro && count >= 10) {
+      return res.status(403).json({ error: 'Follow limit reached', limitReached: true });
+    }
+    
+    const show = await getPodcastById(showId);
+    if (show) {
+      await query(
+        `INSERT INTO podcast_shows (id, title, description, image, language, author, episode_count, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           title = EXCLUDED.title,
+           description = EXCLUDED.description,
+           image = EXCLUDED.image,
+           author = EXCLUDED.author,
+           episode_count = EXCLUDED.episode_count,
+           updated_at = NOW()`,
+        [show.id, show.title, show.description, show.image, show.language, show.author, show.episodeCount]
+      );
+    }
+    
+    await query(
+      `INSERT INTO podcast_follows (guest_id, show_id, region)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (guest_id, show_id) DO NOTHING`,
+      [guestId, showId, region]
+    );
+    
+    await query(
+      `INSERT INTO podcast_events (guest_id, region, event_type, show_id)
+       VALUES ($1, $2, 'show_follow', $3)`,
+      [guestId, region, showId]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error following podcast:', error);
+    res.status(500).json({ error: 'Failed to follow show' });
+  }
+});
+
+app.post('/api/podcasts/follows/remove', async (req, res) => {
+  try {
+    const { guestId, showId } = req.body;
+    
+    if (!guestId || !showId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    await query(
+      'DELETE FROM podcast_follows WHERE guest_id = $1 AND show_id = $2',
+      [guestId, showId]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error unfollowing podcast:', error);
+    res.status(500).json({ error: 'Failed to unfollow show' });
+  }
+});
+
+async function computePodcastBuzz(region: string) {
+  const windowEnd = new Date();
+  const windowStart = new Date(windowEnd.getTime() - 24 * 60 * 60 * 1000);
+  const recentCutoff = new Date(windowEnd.getTime() - 6 * 60 * 60 * 1000);
+
+  const result = await query(
+    `SELECT 
+       COALESCE(show_id, 0) as entity_id,
+       event_type,
+       created_at
+     FROM podcast_events
+     WHERE region = $1 AND created_at >= $2`,
+    [region, windowStart]
+  );
+
+  const scores = new Map<number, number>();
+  
+  for (const row of result.rows) {
+    const entityId = row.entity_id;
+    if (!entityId) continue;
+    
+    let weight = 1;
+    if (row.event_type === 'episode_view') weight = 1;
+    else if (row.event_type === 'episode_save') weight = 3;
+    else if (row.event_type === 'show_follow') weight = 4;
+    
+    const decay = new Date(row.created_at) >= recentCutoff ? 1.0 : 0.5;
+    const score = weight * decay;
+    
+    scores.set(entityId, (scores.get(entityId) || 0) + score);
+  }
+
+  for (const [entityId, score] of scores) {
+    await query(
+      `INSERT INTO podcast_buzz_cache (region, entity_type, entity_id, score, window_start, window_end, computed_at)
+       VALUES ($1, 'show', $2, $3, $4, $5, NOW())
+       ON CONFLICT (region, entity_type, entity_id, window_start)
+       DO UPDATE SET score = $3, computed_at = NOW()`,
+      [region, entityId, Math.round(score), windowStart, windowEnd]
+    );
+  }
+
+  return scores.size;
+}
+
 async function start() {
+  const tmdbKey = process.env.TMDB_API_KEY;
+  if (!tmdbKey) {
+    console.error('FATAL: TMDB_API_KEY is not set. Server cannot start.');
+    process.exit(1);
+  }
+  
   try {
     await initDb();
     app.listen(port, () => {
       console.log(`buzzreel-api listening on port ${port}`);
+      console.log('TMDB API key: configured');
+      console.log('Podcast Index API:', process.env.PODCASTINDEX_API_KEY ? 'configured' : 'not configured');
     });
   } catch (error) {
     console.error('Failed to start server:', error);

@@ -20,8 +20,8 @@ This approach keeps frontend and backend code in a single repository while maint
 ### Frontend Architecture
 - **Framework**: Expo SDK 54 with React Native 0.81 and React 19.1
 - **Navigation**: React Navigation v6 with a hybrid pattern:
-  - Native stack navigator for modal/full-screen flows (Splash, RegionSelect, TitleDetail, Paywall, Settings)
-  - Bottom tab navigator for main content tabs (Trending, Upcoming, Watchlist)
+  - Native stack navigator for modal/full-screen flows (Splash, RegionSelect, TitleDetail, PodcastShowDetail, PodcastEpisodeDetail, Paywall, Settings)
+  - Bottom tab navigator for main content tabs (Trending, Upcoming, Podcasts, Watchlist)
 - **Component Structure**: Reusable UI components in `src/components/` (PosterCard, BuzzMeter, ProviderChips, etc.)
 - **Styling**: React Native StyleSheet with centralized dark "neon magazine" theme
   - Theme file: `src/theme.ts` with colors, spacing, and borderRadius constants
@@ -36,17 +36,26 @@ This approach keeps frontend and backend code in a single repository while maint
 - **API Pattern**: RESTful endpoints under `/api/` prefix
 - **Current Endpoints**:
   - `GET /health` - Service health check
-  - `GET /setup-db` - Create/update database tables (run once after deploy)
   - `GET /api/buzz/:region/:mediaType/:tmdbId` - Get view count for a title in a region
   - `POST /api/buzz/:region/:mediaType/:tmdbId/view` - Record a view for a title in a region
   - `GET /api/buzz/:region/top` - Get top viewed titles in a region
   - `GET /api/watchlist/:guestId` - Get user's watchlist
-  - `POST /api/watchlist/:guestId` - Add item to watchlist (10-item limit enforced)
+  - `POST /api/watchlist/:guestId` - Add item to watchlist (10-item limit for free, unlimited for Pro)
   - `DELETE /api/watchlist/:guestId/:mediaType/:tmdbId` - Remove item from watchlist
   - `GET /api/cache/trending/:region` - Get cached trending content (6hr cache)
   - `GET /api/cache/title/:mediaType/:tmdbId` - Get cached title details (24hr cache)
   - `GET /api/cache/providers/:mediaType/:tmdbId/:region` - Get cached providers (12hr cache)
   - `GET /api/cache/upcoming/:region` - Get cached upcoming releases (6hr cache)
+  - `GET /api/podcasts/buzz?region=` - Get buzzing podcasts (6hr cache)
+  - `GET /api/podcasts/new?region=` - Get recent podcast episodes (6hr cache)
+  - `GET /api/podcasts/top?region=` - Get top podcasts in region (6hr cache)
+  - `GET /api/podcasts/show/:id` - Get podcast show details
+  - `GET /api/podcasts/show/:id/episodes` - Get episodes for a show
+  - `GET /api/podcasts/episode/:id` - Get episode details
+  - `POST /api/podcasts/events` - Record podcast engagement events
+  - `GET /api/podcasts/follows?guestId=` - Get followed podcasts
+  - `POST /api/podcasts/follows/add` - Follow a podcast (10-item limit for free)
+  - `POST /api/podcasts/follows/remove` - Unfollow a podcast
 - **Port**: Defaults to 4000, configurable via PORT environment variable
 - **Deployment**: Railway (welcoming-elegance-production-9299.up.railway.app)
 
@@ -59,10 +68,17 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Watchlists Table**: Stores user watchlists keyed by guest_id
   - Columns: guest_id, tmdb_id, media_type, title, poster_path, added_at
   - Unique constraint on (guest_id, tmdb_id, media_type)
-- **Cache Tables**: Server-side caching to reduce TMDB API calls
+- **Cache Tables**: Server-side caching to reduce API calls
   - `cached_trending`: Trending content by region (6hr expiry)
   - `cached_titles`: Title details (24hr expiry)
   - `cached_providers`: Watch providers by region (12hr expiry)
+  - `cached_podcasts`: Podcast data by region (6hr expiry)
+- **Podcast Tables**: Podcast discovery and engagement tracking
+  - `podcast_shows`: Show metadata from Podcast Index
+  - `podcast_episodes`: Episode metadata with show reference
+  - `podcast_follows`: User follows (guest_id, show_id) with 10-item free limit
+  - `podcast_events`: Engagement events (episode_view, show_follow, episode_save)
+  - `podcast_buzz_cache`: Computed buzz scores by region
 
 ## External Dependencies
 
@@ -81,9 +97,15 @@ This approach keeps frontend and backend code in a single repository while maint
 ### External Integrations
 - **TMDB (The Movie Database)**: Live integration with TMDB API for trending, upcoming, and title details
   - Uses EXPO_PUBLIC_TMDB_API_KEY environment variable (api_key query parameter)
+  - Server validates TMDB_API_KEY at startup and fails fast if missing
   - Service file: `src/services/tmdb.ts`
   - Attribution displayed in Settings screen as required by TMDB terms
 - **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data), filtered by user's region
+- **Podcast Index API**: Podcast discovery and metadata
+  - Uses PODCASTINDEX_API_KEY and PODCASTINDEX_API_SECRET environment variables
+  - Authentication via HMAC SHA-1 signature in request headers
+  - Service file: `apps/api/src/podcast.ts`
+  - Endpoints: trending podcasts, recent episodes, show/episode details
 
 ## Recent Changes
 - **Feb 2026**: Upgraded Expo SDK from 50 to 54 for app store compatibility
@@ -131,3 +153,15 @@ This approach keeps frontend and backend code in a single repository while maint
   - TitleDetailScreen shows full details with streaming providers
   - PosterCard is tappable and navigates to detail view
   - Settings includes TMDB attribution
+- **Feb 2026**: Added Podcasts tab with Podcast Index API integration
+  - 4th bottom tab "Podcasts" with PodcastsScreen showing Buzzing Now, New Drops, Top in Region
+  - PodcastShowDetailScreen with follow/unfollow, episode list
+  - PodcastEpisodeDetailScreen with show link and external play button
+  - Backend caching for podcast data (6hr expiry)
+  - Buzz scoring system: episode_view=1, episode_save=3, show_follow=4 with 6hr decay
+  - Pro limits: 10 podcast follows free, unlimited for Pro
+- **Feb 2026**: Security hardening
+  - Removed /setup-db endpoint (tables created via initDb on startup)
+  - Fixed JSONB caching to store objects directly (no double-encoding)
+  - Added input validation to watchlist endpoints (400 errors for bad input)
+  - Server validates TMDB_API_KEY at startup and fails fast if missing
