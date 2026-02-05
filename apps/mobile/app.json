@@ -33,8 +33,11 @@
         "expo-build-properties",
         {
           "android": {
-            "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**",
-            "extraMavenRepos": []
+            "newArchEnabled": false,
+            "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**"
+          },
+          "ios": {
+            "newArchEnabled": false
           }
         }
       ],
