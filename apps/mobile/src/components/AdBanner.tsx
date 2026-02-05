@@ -1,28 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
+import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { colors, spacing } from '../theme';
 
 const AD_UNIT_ID = 'ca-app-pub-1580761947831808/1129971883';
-
-let BannerAd: any = null;
-let BannerAdSize: any = null;
-let TestIds: any = null;
-let adsAvailable = false;
-
-if (Platform.OS !== 'web') {
-  try {
-    const ads = require('react-native-google-mobile-ads');
-    if (ads && ads.BannerAd && ads.BannerAdSize) {
-      BannerAd = ads.BannerAd;
-      BannerAdSize = ads.BannerAdSize;
-      TestIds = ads.TestIds || {};
-      adsAvailable = true;
-    }
-  } catch (e) {
-    console.log('Google Mobile Ads not available (requires custom dev build)');
-  }
-}
 
 const PlaceholderBanner = () => (
   <View style={styles.banner}>
@@ -40,15 +22,7 @@ const AdBanner = () => {
     return null;
   }
 
-  if (Platform.OS === 'web' || !adsAvailable || !BannerAd || !BannerAdSize) {
-    return (
-      <View style={styles.container}>
-        <PlaceholderBanner />
-      </View>
-    );
-  }
-
-  const adUnitId = __DEV__ && TestIds?.BANNER ? TestIds.BANNER : AD_UNIT_ID;
+  const adUnitId = __DEV__ ? TestIds.BANNER : AD_UNIT_ID;
 
   return (
     <View style={styles.container}>
@@ -62,7 +36,7 @@ const AdBanner = () => {
               requestNonPersonalizedAdsOnly: true,
             }}
             onAdLoaded={() => setAdLoaded(true)}
-            onAdFailedToLoad={(error: any) => {
+            onAdFailedToLoad={(error) => {
               console.log('Ad failed to load:', error);
               setAdError(true);
             }}
