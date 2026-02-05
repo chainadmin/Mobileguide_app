@@ -8,17 +8,28 @@ const AD_UNIT_ID = 'ca-app-pub-1580761947831808/1129971883';
 let BannerAd: any = null;
 let BannerAdSize: any = null;
 let TestIds: any = null;
+let adsAvailable = false;
 
 if (Platform.OS !== 'web') {
   try {
     const ads = require('react-native-google-mobile-ads');
-    BannerAd = ads.BannerAd;
-    BannerAdSize = ads.BannerAdSize;
-    TestIds = ads.TestIds;
+    if (ads && ads.BannerAd && ads.BannerAdSize) {
+      BannerAd = ads.BannerAd;
+      BannerAdSize = ads.BannerAdSize;
+      TestIds = ads.TestIds || {};
+      adsAvailable = true;
+    }
   } catch (e) {
-    console.log('Google Mobile Ads not available');
+    console.log('Google Mobile Ads not available (requires custom dev build)');
   }
 }
+
+const PlaceholderBanner = () => (
+  <View style={styles.banner}>
+    <Text style={styles.adLabel}>AD</Text>
+    <Text style={styles.adText}>Upgrade to Pro for an ad-free experience</Text>
+  </View>
+);
 
 const AdBanner = () => {
   const { isPro, loading } = useEntitlements();
@@ -29,43 +40,35 @@ const AdBanner = () => {
     return null;
   }
 
-  if (Platform.OS === 'web' || !BannerAd) {
+  if (Platform.OS === 'web' || !adsAvailable || !BannerAd || !BannerAdSize) {
     return (
       <View style={styles.container}>
-        <View style={styles.banner}>
-          <Text style={styles.adLabel}>AD</Text>
-          <Text style={styles.adText}>Upgrade to Pro for an ad-free experience</Text>
-        </View>
+        <PlaceholderBanner />
       </View>
     );
   }
 
+  const adUnitId = __DEV__ && TestIds?.BANNER ? TestIds.BANNER : AD_UNIT_ID;
+
   return (
     <View style={styles.container}>
-      {!adLoaded && !adError && (
-        <View style={styles.banner}>
-          <Text style={styles.adLabel}>AD</Text>
-          <Text style={styles.adText}>Loading...</Text>
+      {(!adLoaded || adError) && <PlaceholderBanner />}
+      {!adError && (
+        <View style={adLoaded ? undefined : styles.hidden}>
+          <BannerAd
+            unitId={adUnitId}
+            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            requestOptions={{
+              requestNonPersonalizedAdsOnly: true,
+            }}
+            onAdLoaded={() => setAdLoaded(true)}
+            onAdFailedToLoad={(error: any) => {
+              console.log('Ad failed to load:', error);
+              setAdError(true);
+            }}
+          />
         </View>
       )}
-      {adError && (
-        <View style={styles.banner}>
-          <Text style={styles.adLabel}>AD</Text>
-          <Text style={styles.adText}>Upgrade to Pro for an ad-free experience</Text>
-        </View>
-      )}
-      <BannerAd
-        unitId={__DEV__ ? TestIds?.BANNER : AD_UNIT_ID}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
-        }}
-        onAdLoaded={() => setAdLoaded(true)}
-        onAdFailedToLoad={(error: any) => {
-          console.log('Ad failed to load:', error);
-          setAdError(true);
-        }}
-      />
     </View>
   );
 };
@@ -104,6 +107,11 @@ const styles = StyleSheet.create({
   adText: {
     color: colors.textSecondary,
     fontSize: 12
+  },
+  hidden: {
+    position: 'absolute',
+    opacity: 0,
+    pointerEvents: 'none'
   }
 });
 
