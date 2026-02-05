@@ -18,7 +18,7 @@ The project uses npm workspaces to manage two applications under `apps/`:
 This approach keeps frontend and backend code in a single repository while maintaining separate dependency management.
 
 ### Frontend Architecture
-- **Framework**: Expo SDK 50 with React Native 0.73
+- **Framework**: Expo SDK 54 with React Native 0.81 and React 19.1
 - **Navigation**: React Navigation v6 with a hybrid pattern:
   - Native stack navigator for modal/full-screen flows (Splash, RegionSelect, TitleDetail, Paywall, Settings)
   - Bottom tab navigator for main content tabs (Trending, Upcoming, Watchlist)
@@ -86,6 +86,11 @@ This approach keeps frontend and backend code in a single repository while maint
 - **Streaming Provider Data**: Watch provider info fetched via TMDB API (JustWatch data), filtered by user's region
 
 ## Recent Changes
+- **Feb 2026**: Upgraded Expo SDK from 50 to 54 for app store compatibility
+  - Updated to React Native 0.76+ and React 19
+  - Updated all Expo packages to SDK 54 compatible versions
+  - Fixed navigation package compatibility (React Navigation v6)
+  - Required --legacy-peer-deps flag for npm workspaces
 - **Feb 2026**: Implemented watchlist backend persistence and engagement features
   - GuestId (UUID) generated and stored in AsyncStorage for anonymous users
   - Watchlist syncs with backend API per guestId (CRUD operations)
