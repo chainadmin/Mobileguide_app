@@ -152,6 +152,10 @@ const PodcastsScreen = () => {
       <View style={styles.showInfo}>
         <Text style={styles.showTitle} numberOfLines={2}>{stripHtml(show.title)}</Text>
         <Text style={styles.showAuthor} numberOfLines={1}>{stripHtml(show.author)}</Text>
+        <View style={styles.showBuzzMeter}>
+          <Text style={styles.showBuzzIcon}>🔥</Text>
+          <Text style={styles.showBuzzText}>{show.buzzScore || 0} buzz</Text>
+        </View>
       </View>
     </TouchableOpacity>
   );
@@ -237,13 +241,6 @@ const PodcastsScreen = () => {
           <Text style={styles.changeText}>Change</Text>
         </TouchableOpacity>
       </View>
-
-      {followingShows.length > 0 && renderHorizontalShows(
-        followingShows,
-        'YOUR SHOWS',
-        'Podcasts you follow.',
-        true
-      )}
 
       {buzzingNow.length > 0 && renderHorizontalShows(
         buzzingNow, 
@@ -418,6 +415,20 @@ const styles = StyleSheet.create({
   showAuthor: {
     color: colors.textSecondary,
     fontSize: 12
+  },
+  showBuzzMeter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginTop: 2
+  },
+  showBuzzIcon: {
+    fontSize: 10
+  },
+  showBuzzText: {
+    color: colors.accent,
+    fontSize: 11,
+    fontWeight: '600'
   },
   episodeList: {
     gap: spacing.md,

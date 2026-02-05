@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,22 @@ import { useWatchlist } from '../context/WatchlistContext';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { useAlerts } from '../context/AlertsContext';
 import { getPosterUrl } from '../services/tmdb';
+import { getGuestId } from '../services/guestId';
+
+const API_BASE = 'https://welcoming-elegance-production-9299.up.railway.app';
+
+type PodcastFollow = {
+  id: number;
+  title: string;
+  author: string;
+  image: string;
+  buzzScore?: number;
+};
+
+const stripHtml = (html: string): string => {
+  if (!html) return '';
+  return html.replace(/<[^>]*>/g, '').trim();
+};
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
@@ -19,12 +35,52 @@ const WatchlistScreen = () => {
   const { watchlist, removeFromWatchlist, loading, refreshWatchlist } = useWatchlist();
   const { isPro } = useEntitlements();
   const { toggleAlert, isAlertEnabled } = useAlerts();
+  const [followedPodcasts, setFollowedPodcasts] = useState<PodcastFollow[]>([]);
+  const [guestId, setGuestId] = useState<string | null>(null);
   const maxSlots = 10;
+
+  useEffect(() => {
+    const init = async () => {
+      const id = await getGuestId();
+      setGuestId(id);
+    };
+    init();
+  }, []);
+
+  const fetchFollowedPodcasts = useCallback(async () => {
+    if (!guestId) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/podcasts/follows?guestId=${guestId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setFollowedPodcasts(data.shows || []);
+      }
+    } catch (err) {
+      console.error('Error fetching followed podcasts:', err);
+    }
+  }, [guestId]);
+
+  const unfollowPodcast = async (showId: number) => {
+    if (!guestId) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/podcasts/follows/remove`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ guestId, showId })
+      });
+      if (res.ok) {
+        setFollowedPodcasts(prev => prev.filter(p => p.id !== showId));
+      }
+    } catch (err) {
+      console.error('Error unfollowing podcast:', err);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
       refreshWatchlist();
-    }, [refreshWatchlist])
+      fetchFollowedPodcasts();
+    }, [refreshWatchlist, fetchFollowedPodcasts])
   );
 
   const handlePress = (item: typeof watchlist[0]) => {
@@ -77,7 +133,7 @@ const WatchlistScreen = () => {
           <Text style={styles.planLabel}>{isPro ? 'Pro Plan' : 'Free Plan'}</Text>
           <View style={[styles.countPill, isPro && styles.countPillPro]}>
             <Text style={[styles.countText, isPro && styles.countTextPro]}>
-              {isPro ? `${watchlist.length} saved` : `${watchlist.length}/${maxSlots}`}
+              {isPro ? `${watchlist.length + followedPodcasts.length} saved` : `${watchlist.length + followedPodcasts.length}/${maxSlots}`}
             </Text>
           </View>
         </View>
@@ -109,13 +165,19 @@ const WatchlistScreen = () => {
         </View>
       )}
 
-      {watchlist.length === 0 ? (
+      {watchlist.length === 0 && followedPodcasts.length === 0 ? (
         <EmptyState
           title="Your watchlist is empty"
-          message="Save titles to keep track of what to watch next."
+          message="Save movies, shows, and podcasts to keep track of what to watch and listen to."
         />
       ) : (
-        watchlist.map((item) => {
+        <>
+          {watchlist.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>MOVIES & SHOWS</Text>
+            </View>
+          )}
+          {watchlist.map((item) => {
           const alertOn = isAlertEnabled(item.id, item.mediaType);
           return (
             <TouchableOpacity
@@ -152,7 +214,44 @@ const WatchlistScreen = () => {
               </View>
             </TouchableOpacity>
           );
-        })
+          })}
+
+          {followedPodcasts.length > 0 && (
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionLabel}>PODCASTS</Text>
+            </View>
+          )}
+          {followedPodcasts.map((podcast) => (
+            <TouchableOpacity
+              key={`podcast-${podcast.id}`}
+              style={styles.card}
+              onPress={() => navigation.navigate('PodcastShowDetail', { showId: podcast.id })}
+              activeOpacity={0.8}
+            >
+              <Image
+                source={{ uri: podcast.image }}
+                style={styles.poster}
+              />
+              <View style={styles.cardContent}>
+                <Text style={styles.title} numberOfLines={2}>{stripHtml(podcast.title)}</Text>
+                <Text style={styles.type}>Podcast</Text>
+                <View style={styles.buzzMeter}>
+                  <Text style={styles.buzzIcon}>🔥</Text>
+                  <Text style={styles.buzzText}>{podcast.buzzScore || 0} buzz</Text>
+                </View>
+              </View>
+              <View style={styles.cardActions}>
+                <TouchableOpacity
+                  style={styles.removeButton}
+                  onPress={() => unfollowPodcast(podcast.id)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.removeText}>Unfollow</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </>
       )}
     </ScrollView>
     <AdBanner />
@@ -333,6 +432,31 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs
   },
   removeText: {
+    color: colors.accent,
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  sectionContainer: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm
+  },
+  sectionLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 1,
+    textTransform: 'uppercase'
+  },
+  buzzMeter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4
+  },
+  buzzIcon: {
+    fontSize: 12
+  },
+  buzzText: {
     color: colors.accent,
     fontSize: 12,
     fontWeight: '600'
