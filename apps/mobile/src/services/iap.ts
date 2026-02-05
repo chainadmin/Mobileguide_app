@@ -1,5 +1,4 @@
 import { Platform } from 'react-native';
-import * as InAppPurchases from 'expo-in-app-purchases';
 
 export const PRODUCT_IDS = {
   MONTHLY: 'buzzreel_pro_monthly',
@@ -11,10 +10,26 @@ const ALL_PRODUCT_IDS = [PRODUCT_IDS.MONTHLY, PRODUCT_IDS.YEARLY, PRODUCT_IDS.LI
 
 let isConnected = false;
 let listenerRegistered = false;
+let iapModule: typeof import('expo-in-app-purchases') | null = null;
 let purchaseCallbacks: {
   onSuccess: () => void;
   onError: (error: string) => void;
 } | null = null;
+
+async function getIAPModule() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+  if (!iapModule) {
+    try {
+      iapModule = await import('expo-in-app-purchases');
+    } catch (error) {
+      console.log('IAP module not available:', error);
+      return null;
+    }
+  }
+  return iapModule;
+}
 
 export async function initializeIAP(): Promise<boolean> {
   try {
@@ -23,15 +38,20 @@ export async function initializeIAP(): Promise<boolean> {
       return false;
     }
 
+    const IAP = await getIAPModule();
+    if (!IAP) return false;
+
     if (isConnected) {
       return true;
     }
 
-    await InAppPurchases.connectAsync();
+    await IAP.connectAsync();
     isConnected = true;
     
     if (!listenerRegistered) {
-      InAppPurchases.setPurchaseListener(handlePurchaseUpdate);
+      IAP.setPurchaseListener(({ responseCode, results }) => {
+        handlePurchaseUpdate(responseCode, results);
+      });
       listenerRegistered = true;
     }
     
@@ -43,12 +63,15 @@ export async function initializeIAP(): Promise<boolean> {
   }
 }
 
-function handlePurchaseUpdate({ responseCode, results }: { responseCode: InAppPurchases.IAPResponseCode; results?: InAppPurchases.InAppPurchase[] }) {
-  if (responseCode === InAppPurchases.IAPResponseCode.OK) {
-    results?.forEach(async (purchase: InAppPurchases.InAppPurchase) => {
+async function handlePurchaseUpdate(responseCode: number, results?: any[]) {
+  const IAP = await getIAPModule();
+  if (!IAP) return;
+
+  if (responseCode === IAP.IAPResponseCode.OK) {
+    results?.forEach(async (purchase) => {
       if (!purchase.acknowledged) {
         try {
-          await InAppPurchases.finishTransactionAsync(purchase, true);
+          await IAP.finishTransactionAsync(purchase, true);
           console.log('Transaction finished:', purchase.productId);
         } catch (err) {
           console.error('Error finishing transaction:', err);
@@ -60,7 +83,7 @@ function handlePurchaseUpdate({ responseCode, results }: { responseCode: InAppPu
       purchaseCallbacks.onSuccess();
       purchaseCallbacks = null;
     }
-  } else if (responseCode === InAppPurchases.IAPResponseCode.USER_CANCELED) {
+  } else if (responseCode === IAP.IAPResponseCode.USER_CANCELED) {
     if (purchaseCallbacks?.onError) {
       purchaseCallbacks.onError('canceled');
       purchaseCallbacks = null;
@@ -73,14 +96,19 @@ function handlePurchaseUpdate({ responseCode, results }: { responseCode: InAppPu
   }
 }
 
-export async function getProducts(): Promise<InAppPurchases.IAPItemDetails[]> {
+export async function getProducts(): Promise<any[]> {
   try {
+    if (Platform.OS === 'web') return [];
+    
+    const IAP = await getIAPModule();
+    if (!IAP) return [];
+
     if (!isConnected) {
       const connected = await initializeIAP();
       if (!connected) return [];
     }
 
-    const { results } = await InAppPurchases.getProductsAsync(ALL_PRODUCT_IDS);
+    const { results } = await IAP.getProductsAsync(ALL_PRODUCT_IDS);
     return results || [];
   } catch (error) {
     console.error('Error getting products:', error);
@@ -94,6 +122,17 @@ export async function purchaseSubscription(
   onError: (error: string) => void
 ): Promise<void> {
   try {
+    if (Platform.OS === 'web') {
+      onError('Purchases are not available on web');
+      return;
+    }
+
+    const IAP = await getIAPModule();
+    if (!IAP) {
+      onError('Unable to connect to the store. Please try again.');
+      return;
+    }
+
     if (!isConnected) {
       const connected = await initializeIAP();
       if (!connected) {
@@ -103,7 +142,7 @@ export async function purchaseSubscription(
     }
 
     purchaseCallbacks = { onSuccess, onError };
-    await InAppPurchases.purchaseItemAsync(productId);
+    await IAP.purchaseItemAsync(productId);
   } catch (error) {
     console.error('Error purchasing:', error);
     purchaseCallbacks = null;
@@ -120,6 +159,11 @@ export async function restorePurchases(): Promise<{
       return { success: false, hasActiveSubscription: false };
     }
 
+    const IAP = await getIAPModule();
+    if (!IAP) {
+      return { success: false, hasActiveSubscription: false };
+    }
+
     if (!isConnected) {
       const connected = await initializeIAP();
       if (!connected) {
@@ -127,10 +171,10 @@ export async function restorePurchases(): Promise<{
       }
     }
 
-    const { results } = await InAppPurchases.getPurchaseHistoryAsync();
+    const { results } = await IAP.getPurchaseHistoryAsync();
     
     if (results && results.length > 0) {
-      const hasActive = results.some((purchase) => {
+      const hasActive = results.some((purchase: any) => {
         const productId = purchase.productId;
         const isValidPurchase = productId === PRODUCT_IDS.MONTHLY || 
                                 productId === PRODUCT_IDS.YEARLY || 
@@ -154,15 +198,18 @@ export async function checkActiveSubscription(): Promise<boolean> {
       return false;
     }
 
+    const IAP = await getIAPModule();
+    if (!IAP) return false;
+
     if (!isConnected) {
       const connected = await initializeIAP();
       if (!connected) return false;
     }
 
-    const { results } = await InAppPurchases.getPurchaseHistoryAsync();
+    const { results } = await IAP.getPurchaseHistoryAsync();
     
     if (results && results.length > 0) {
-      return results.some((purchase) => {
+      return results.some((purchase: any) => {
         const productId = purchase.productId;
         const isValidPurchase = productId === PRODUCT_IDS.MONTHLY || 
                                 productId === PRODUCT_IDS.YEARLY || 
@@ -180,8 +227,13 @@ export async function checkActiveSubscription(): Promise<boolean> {
 
 export async function disconnectIAP(): Promise<void> {
   try {
+    if (Platform.OS === 'web') return;
+
+    const IAP = await getIAPModule();
+    if (!IAP) return;
+
     if (isConnected) {
-      await InAppPurchases.disconnectAsync();
+      await IAP.disconnectAsync();
       isConnected = false;
       listenerRegistered = false;
     }
