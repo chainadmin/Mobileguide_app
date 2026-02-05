@@ -1,0 +1,192 @@
+tep-by-step build plan (safe order)
+STEP 1 — Add the Podcasts tab + screens (UI only)
+Screens
+
+PodcastsScreen (main feed)
+
+PodcastShowDetailScreen
+
+PodcastEpisodeDetailScreen (optional; can be a modal)
+
+What PodcastsScreen shows (simple MVP)
+
+Sections:
+
+Buzzing Now (Podcasts) – top buzz episodes/shows
+
+New Drops (24–72h) – recent episodes
+
+Top in US / Top in UK – can be based on your buzz until you add charts
+
+✅ No search yet. No player yet.
+
+STEP 2 — Add backend “podcast module” endpoints (mock first)
+
+Add these endpoints to your existing API:
+
+GET /api/podcasts/buzz?region=US
+
+GET /api/podcasts/new?region=US
+
+GET /api/podcasts/show/:id
+
+GET /api/podcasts/episode/:id
+
+POST /api/podcasts/events
+
+GET /api/podcasts/follows?guestId=...
+
+POST /api/podcasts/follows/add
+
+POST /api/podcasts/follows/remove
+
+Start with mock JSON responses so the app UI works immediately.
+
+STEP 3 — Add DB tables for podcasts
+
+Add migrations:
+
+podcast_shows
+
+id (Podcast Index show id)
+
+title
+
+description
+
+image
+
+language
+
+country
+
+author
+
+feed_url
+
+updated_at
+
+podcast_episodes
+
+id (Podcast Index episode id)
+
+show_id
+
+title
+
+description
+
+image
+
+date_published (unix or timestamp)
+
+audio_url (optional)
+
+duration
+
+updated_at
+
+podcast_follows
+
+guest_id
+
+show_id
+
+region
+
+added_at
+(unique on guest_id + show_id)
+
+podcast_events
+
+guest_id
+
+region (US/GB)
+
+event_type (episode_view, show_follow, episode_save)
+
+show_id (nullable)
+
+episode_id (nullable)
+
+created_at
+
+podcast_buzz_cache
+
+region
+
+entity_type (show or episode)
+
+entity_id
+
+score
+
+window_start
+
+window_end
+
+computed_at
+
+STEP 4 — Wire Podcast Index API (real data)
+
+Podcast Index has a free API with authentication headers (API key + secret).
+
+You’ll add env vars:
+
+PODCAST_INDEX_KEY
+
+PODCAST_INDEX_SECRET
+
+Then implement these backend fetchers:
+
+fetchRecentEpisodes(region) (new drops)
+
+fetchShow(showId)
+
+fetchEpisode(episodeId)
+
+MVP approach for “New Drops”:
+
+pull recent episodes broadly (English) and filter by region preference (US/GB) lightly (or by language=en)
+
+cache them
+
+STEP 5 — Buzz ranking for podcasts (same as BuzzReel)
+
+In your existing refresh job (or a new one):
+
+compute buzz from podcast_events last 24h
+
+apply weights:
+
+episode_view = 1
+
+episode_save = 3
+
+show_follow = 4
+
+decay:
+
+last 6h = 1.0x
+
+6–24h = 0.5x
+
+Then PodcastsScreen “Buzzing Now” uses podcast_buzz_cache.
+
+STEP 6 — Monetization hook (later)
+
+Free:
+
+Browse podcasts
+
+Follow up to 10 shows
+
+Pro:
+
+Unlimited follows
+
+Drop alerts (new episode for followed show)
+
+No ads
+
+No login required.
