@@ -2,7 +2,7 @@ import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from './src/theme';
-import { RegionProvider } from './src/context/RegionContext';
+import { RegionProvider, useRegion } from './src/context/RegionContext';
 import { WatchlistProvider } from './src/context/WatchlistContext';
 import { EntitlementsProvider } from './src/context/EntitlementsContext';
 import { PlatformFiltersProvider } from './src/context/PlatformFiltersContext';
@@ -20,6 +20,8 @@ import TitleDetailScreen from './src/screens/TitleDetailScreen';
 import TrendingScreen from './src/screens/TrendingScreen';
 import UpcomingScreen from './src/screens/UpcomingScreen';
 import WatchlistScreen from './src/screens/WatchlistScreen';
+
+const PODCAST_REGIONS = ['US', 'GB', 'CA'];
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -49,6 +51,9 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 const Tabs = () => {
+  const { region } = useRegion();
+  const showPodcasts = region && PODCAST_REGIONS.includes(region.code);
+
   return (
     <Tab.Navigator
       screenOptions={{
@@ -70,7 +75,7 @@ const Tabs = () => {
     >
       <Tab.Screen name="Trending" component={TrendingScreen} />
       <Tab.Screen name="Upcoming" component={UpcomingScreen} />
-      <Tab.Screen name="Podcasts" component={PodcastsScreen} />
+      {showPodcasts && <Tab.Screen name="Podcasts" component={PodcastsScreen} />}
       <Tab.Screen name="Watchlist" component={WatchlistScreen} />
     </Tab.Navigator>
   );
