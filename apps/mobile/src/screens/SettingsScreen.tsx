@@ -173,6 +173,15 @@ const SettingsScreen = () => {
           <Text style={styles.cardText}>
             Streaming provider information courtesy of JustWatch via TMDB API.
           </Text>
+          <View style={styles.divider} />
+          <View style={styles.chainRow}>
+            <Image
+              source={require('../../assets/chain-logo.jpg')}
+              style={styles.chainLogo}
+              resizeMode="contain"
+            />
+            <Text style={styles.poweredByText}>Powered by Chain Software Group</Text>
+          </View>
         </View>
       </View>
 
@@ -388,6 +397,22 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border
+  },
+  chainRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    gap: spacing.sm
+  },
+  chainLogo: {
+    width: 32,
+    height: 32,
+    borderRadius: 6
+  },
+  poweredByText: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '500'
   }
 });
 
