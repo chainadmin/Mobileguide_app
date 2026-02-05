@@ -127,13 +127,15 @@ This approach keeps frontend and backend code in a single repository while maint
   - Watchlist cards show bell icons for Pro users to enable/disable alerts per title
   - Privacy and Terms pages served from Railway API with full data disclosure
   - Settings links updated to use Railway URL for legal pages
-- **Feb 2026**: Implemented Pro monetization structure
-  - EntitlementsContext with isPro, setPro, restorePurchases functions
-  - DEV ONLY toggle in Settings to simulate Pro mode for testing
-  - Pro unlocks: unlimited watchlist, platform filters, release alerts, no ads (stub)
-  - PaywallScreen with selling copy and Monthly/Yearly options
-  - WatchlistContext bypasses 10-item limit when Pro is active
-  - IAP_INTEGRATION.md documents how to plug in Expo IAP library
+- **Feb 2026**: Implemented Pro monetization with real Google Play Billing
+  - expo-in-app-purchases integrated for Android subscriptions
+  - IAPService handles connection, purchases, restore, and subscription checks
+  - Product IDs: buzzreel_pro_monthly ($1.99/mo), buzzreel_pro_yearly ($9.99/yr)
+  - EntitlementsContext with isPro, setDevPro (dev-only), restorePurchases, refreshProStatus
+  - Purchase listener registered once on app init with proper cleanup
+  - Dev toggle only works in __DEV__ mode, separate from production subscription status
+  - PaywallScreen triggers real Google Play purchases on Android
+  - Web platform handled gracefully (purchases only available on mobile)
 - **Feb 2026**: Added subscription paywall and enhanced UI features
   - PaywallScreen with Monthly ($1.99) and Yearly ($9.99) tiers
   - Daily Digest horizontal strip on Trending showing upcoming movies
