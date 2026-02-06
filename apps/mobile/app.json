@@ -42,7 +42,6 @@
       }
     },
     "plugins": [
-      "./plugins/withAdIdPermission",
       "./plugins/withDisableCppWarningsAsErrors",
       [
         "expo-build-properties",
@@ -66,7 +65,8 @@
           "iosAppId": "ca-app-pub-1580761947831808~4467016439"
         }
       ],
-      "expo-iap"
+      "expo-iap",
+      "./plugins/withAdIdPermission"
     ],
     "extra": {
       "eas": {
