@@ -1,4 +1,4 @@
-const { withAndroidManifest, AndroidConfig } = require('expo/config-plugins');
+const { withAndroidManifest, withAppBuildGradle } = require('expo/config-plugins');
 
 const withAdIdPermission = (config) => {
   config = withAndroidManifest(config, (config) => {
@@ -14,24 +14,50 @@ const withAdIdPermission = (config) => {
     }
 
     const adIdPermission = 'com.google.android.gms.permission.AD_ID';
+    const adServicesAdId = 'android.permission.ACCESS_ADSERVICES_AD_ID';
+    const adServicesAttribution = 'android.permission.ACCESS_ADSERVICES_ATTRIBUTION';
 
-    const existingIndex = manifest['uses-permission'].findIndex(
-      (perm) => perm.$?.['android:name'] === adIdPermission
-    );
+    const permissionsToAdd = [
+      { name: adIdPermission, toolsNode: 'replace' },
+      { name: adServicesAdId, toolsNode: 'replace' },
+      { name: adServicesAttribution, toolsNode: 'replace' },
+    ];
 
-    const adIdEntry = {
-      $: {
-        'android:name': adIdPermission,
-        'tools:node': 'merge',
-      },
-    };
+    for (const perm of permissionsToAdd) {
+      const existingIndex = manifest['uses-permission'].findIndex(
+        (p) => p.$?.['android:name'] === perm.name
+      );
 
-    if (existingIndex >= 0) {
-      manifest['uses-permission'][existingIndex] = adIdEntry;
-    } else {
-      manifest['uses-permission'].push(adIdEntry);
+      const entry = {
+        $: {
+          'android:name': perm.name,
+          'tools:node': perm.toolsNode,
+        },
+      };
+
+      if (existingIndex >= 0) {
+        manifest['uses-permission'][existingIndex] = entry;
+      } else {
+        manifest['uses-permission'].push(entry);
+      }
     }
 
+    return config;
+  });
+
+  config = withAppBuildGradle(config, (config) => {
+    if (config.modResults.language === 'groovy') {
+      const contents = config.modResults.contents;
+      const adIdSnippet = `
+// Force AD_ID permission in final merged manifest
+android.defaultConfig.manifestPlaceholders += [
+    adIdPermission: "com.google.android.gms.permission.AD_ID"
+]
+`;
+      if (!contents.includes('adIdPermission')) {
+        config.modResults.contents = contents + '\n' + adIdSnippet;
+      }
+    }
     return config;
   });
 
