@@ -17,7 +17,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 7,
+      "versionCode": 8,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING"
