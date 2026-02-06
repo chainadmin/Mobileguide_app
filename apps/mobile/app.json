@@ -17,7 +17,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 4,
+      "versionCode": 3,
       "permissions": ["com.google.android.gms.permission.AD_ID", "com.android.vending.BILLING"],
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
