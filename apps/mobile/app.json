@@ -18,7 +18,10 @@
       },
       "package": "com.buzzreel.app",
       "versionCode": 3,
-      "permissions": ["com.google.android.gms.permission.AD_ID", "com.android.vending.BILLING"],
+      "permissions": [
+        "com.google.android.gms.permission.AD_ID",
+        "com.android.vending.BILLING"
+      ],
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
       }
@@ -45,6 +48,7 @@
         {
           "android": {
             "newArchEnabled": false,
+            "kotlinVersion": "2.2.0",
             "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**"
           },
           "ios": {
@@ -58,7 +62,8 @@
           "androidAppId": "ca-app-pub-1580761947831808~4467016439",
           "iosAppId": "ca-app-pub-1580761947831808~4467016439"
         }
-      ]
+      ],
+      "expo-iap"
     ],
     "extra": {
       "eas": {

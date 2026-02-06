@@ -128,14 +128,16 @@ This approach keeps frontend and backend code in a single repository while maint
   - Watchlist cards show bell icons for Pro users to enable/disable alerts per title
   - Privacy and Terms pages served from Railway API with full data disclosure
   - Settings links updated to use Railway URL for legal pages
-- **Feb 2026**: Implemented Pro monetization with real Google Play Billing
-  - expo-in-app-purchases integrated for Android subscriptions
+- **Feb 2026**: Implemented Pro monetization with expo-iap (Play Billing v8.0+ / StoreKit 2)
+  - Migrated from deprecated expo-in-app-purchases (AIDL) to expo-iap for Google Play compliance
+  - expo-iap uses Play Billing Library v8.0 (exceeds Google's 6.0.1+ requirement)
+  - Kotlin 2.2.0 configured via expo-build-properties for billing library compatibility
   - IAPService handles connection, purchases, restore, and subscription checks
   - Product IDs: buzzreel_pro_monthly ($1.99/mo), buzzreel_pro_yearly ($9.99/yr), buzzreel_pro_lifetime ($24.99 one-time)
   - EntitlementsContext with isPro, setDevPro (dev-only), restorePurchases, refreshProStatus
-  - Purchase listener registered once on app init with proper cleanup
+  - Purchase/error listeners via purchaseUpdatedListener and purchaseErrorListener
   - Dev toggle only works in __DEV__ mode, separate from production subscription status
-  - PaywallScreen triggers real Google Play purchases on Android
+  - PaywallScreen triggers real store purchases on Android and iOS
   - Web platform handled gracefully (purchases only available on mobile)
 - **Feb 2026**: Added subscription paywall and enhanced UI features
   - PaywallScreen with Monthly ($1.99) and Yearly ($9.99) tiers
