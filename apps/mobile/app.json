@@ -2,7 +2,7 @@
   "expo": {
     "name": "Buzzreel",
     "slug": "buzzreel",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "platforms": [
       "ios",
@@ -17,12 +17,14 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
+      "versionCode": 2,
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
       }
     },
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
+      "buildNumber": "2",
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
       }
