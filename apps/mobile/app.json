@@ -18,6 +18,7 @@
       },
       "package": "com.buzzreel.app",
       "versionCode": 2,
+      "permissions": ["com.google.android.gms.permission.AD_ID"],
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
       }
