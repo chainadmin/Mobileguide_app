@@ -17,7 +17,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
         "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING"
@@ -50,6 +50,8 @@
           "android": {
             "newArchEnabled": false,
             "kotlinVersion": "2.2.0",
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
             "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**"
           },
           "ios": {
