@@ -1,4 +1,8 @@
-const { withAndroidManifest, withAppBuildGradle } = require('expo/config-plugins');
+const { withAndroidManifest, withDangerousMod, withAppBuildGradle } = require('expo/config-plugins');
+const fs = require('fs');
+const path = require('path');
+
+const AD_ID_PERM = 'com.google.android.gms.permission.AD_ID';
 
 const withAdIdPermission = (config) => {
   config = withAndroidManifest(config, (config) => {
@@ -13,30 +17,19 @@ const withAdIdPermission = (config) => {
       manifest['uses-permission'] = [];
     }
 
-    const adIdPermission = 'com.google.android.gms.permission.AD_ID';
-    const adServicesAdId = 'android.permission.ACCESS_ADSERVICES_AD_ID';
-    const adServicesAttribution = 'android.permission.ACCESS_ADSERVICES_ATTRIBUTION';
-
-    const permissionsToAdd = [
-      { name: adIdPermission, toolsNode: 'replace' },
-      { name: adServicesAdId, toolsNode: 'replace' },
-      { name: adServicesAttribution, toolsNode: 'replace' },
+    const permissions = [
+      AD_ID_PERM,
+      'android.permission.ACCESS_ADSERVICES_AD_ID',
+      'android.permission.ACCESS_ADSERVICES_ATTRIBUTION',
     ];
 
-    for (const perm of permissionsToAdd) {
-      const existingIndex = manifest['uses-permission'].findIndex(
-        (p) => p.$?.['android:name'] === perm.name
+    for (const name of permissions) {
+      const idx = manifest['uses-permission'].findIndex(
+        (p) => p.$?.['android:name'] === name
       );
-
-      const entry = {
-        $: {
-          'android:name': perm.name,
-          'tools:node': perm.toolsNode,
-        },
-      };
-
-      if (existingIndex >= 0) {
-        manifest['uses-permission'][existingIndex] = entry;
+      const entry = { $: { 'android:name': name, 'tools:node': 'replace' } };
+      if (idx >= 0) {
+        manifest['uses-permission'][idx] = entry;
       } else {
         manifest['uses-permission'].push(entry);
       }
@@ -45,65 +38,35 @@ const withAdIdPermission = (config) => {
     return config;
   });
 
-  config = withAppBuildGradle(config, (config) => {
-    if (config.modResults.language === 'groovy') {
-      const contents = config.modResults.contents;
-      const postMergeTask = `
-// Inject AD_ID permission AFTER Gradle manifest merger completes
-import groovy.xml.XmlSlurper
-import groovy.xml.XmlUtil
+  config = withDangerousMod(config, [
+    'android',
+    async (config) => {
+      const releaseDir = path.join(
+        config.modRequest.platformProjectRoot,
+        'app', 'src', 'release'
+      );
 
-android.applicationVariants.configureEach { variant ->
-    variant.outputs.each { output ->
-        def processManifest = output.hasProperty("processManifestProvider") ?
-            output.processManifestProvider.get() : output.processManifest
-        processManifest.doLast { task ->
-            def outDir = null
-            if (task.hasProperty("manifestOutputDirectory")) {
-                outDir = task.manifestOutputDirectory.get().asFile
-            } else if (task.hasProperty("multiApkManifestOutputDirectory")) {
-                outDir = task.multiApkManifestOutputDirectory.get().asFile
-            }
-            if (outDir == null) {
-                outDir = new File(project.buildDir, "intermediates/merged_manifests/\${variant.name}")
-            }
-            def manifestFiles = []
-            if (outDir.exists()) {
-                outDir.eachFileRecurse { f ->
-                    if (f.name == 'AndroidManifest.xml') {
-                        manifestFiles.add(f)
-                    }
-                }
-            }
-            def bundleManifest = new File(project.buildDir, "intermediates/merged_manifests/\${variant.name}/AndroidManifest.xml")
-            if (bundleManifest.exists() && !manifestFiles.contains(bundleManifest)) {
-                manifestFiles.add(bundleManifest)
-            }
-            manifestFiles.each { manifestFile ->
-                def xml = new XmlSlurper().parse(manifestFile)
-                def adIdPerm = 'com.google.android.gms.permission.AD_ID'
-                def hasAdId = xml.'uses-permission'.any { it.@'android:name' == adIdPerm }
-                if (!hasAdId) {
-                    xml.appendNode {
-                        'uses-permission'('android:name': adIdPerm)
-                    }
-                    manifestFile.text = XmlUtil.serialize(xml)
-                    println ">>> AD_ID permission injected into: \${manifestFile.path}"
-                } else {
-                    println ">>> AD_ID permission already in: \${manifestFile.path}"
-                }
-            }
-        }
-    }
-}
-`;
-      if (!contents.includes('Inject AD_ID permission AFTER Gradle manifest merger')) {
-        const cleaned = contents.replace(/\n\/\/ Force AD_ID permission[\s\S]*?adIdPermission[\s\S]*?\]\n/, '\n');
-        config.modResults.contents = cleaned + '\n' + postMergeTask;
+      if (!fs.existsSync(releaseDir)) {
+        fs.mkdirSync(releaseDir, { recursive: true });
       }
-    }
-    return config;
-  });
+
+      const releaseManifest = `<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="${AD_ID_PERM}" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" />
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" />
+</manifest>
+`;
+
+      fs.writeFileSync(
+        path.join(releaseDir, 'AndroidManifest.xml'),
+        releaseManifest
+      );
+      console.log('✅ Created release source set manifest with AD_ID permission');
+
+      return config;
+    },
+  ]);
 
   return config;
 };
