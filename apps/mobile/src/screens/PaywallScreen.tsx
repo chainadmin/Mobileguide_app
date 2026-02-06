@@ -1,9 +1,13 @@
 import { useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, borderRadius } from '../theme';
+
+const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { purchaseSubscription, PRODUCT_IDS } from '../services/iap';
+
+const isIOS = Platform.OS === 'ios';
 
 type PlanType = 'monthly' | 'yearly' | 'lifetime';
 
@@ -80,7 +84,7 @@ const PaywallScreen = () => {
     if (Platform.OS === 'web') {
       Alert.alert(
         'Not Available',
-        'Subscriptions are available in the mobile app. Download from the App Store or Google Play.',
+        'Subscriptions are only available in the Buzzreel mobile app. Download from the App Store or Google Play to subscribe.',
         [{ text: 'OK' }]
       );
       return;
@@ -227,8 +231,22 @@ const PaywallScreen = () => {
       </TouchableOpacity>
 
       <Text style={styles.legalText}>
-        Payment will be charged to your Google Play account. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Lifetime is a one-time purchase with no recurring charges. Manage purchases in your Google Play settings.
+        {isIOS
+          ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your App Store account settings. Lifetime is a one-time purchase with no recurring charges.'
+          : 'Payment will be charged to your Google Play account. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Lifetime is a one-time purchase with no recurring charges. Manage purchases in your Google Play settings.'}
       </Text>
+
+      {isIOS && (
+        <View style={styles.iosLinks}>
+          <TouchableOpacity onPress={() => Linking.openURL(`${API_BASE_URL}/terms`)}>
+            <Text style={styles.iosLinkText}>Terms of Use</Text>
+          </TouchableOpacity>
+          <Text style={styles.iosLinkSeparator}>|</Text>
+          <TouchableOpacity onPress={() => Linking.openURL(`${API_BASE_URL}/privacy`)}>
+            <Text style={styles.iosLinkText}>Privacy Policy</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScrollView>
   );
 };
@@ -419,6 +437,23 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 16,
     marginTop: spacing.md
+  },
+  iosLinks: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm
+  },
+  iosLinkText: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    textDecorationLine: 'underline'
+  },
+  iosLinkSeparator: {
+    color: colors.textMuted,
+    fontSize: 12,
+    marginHorizontal: spacing.sm
   }
 });
 

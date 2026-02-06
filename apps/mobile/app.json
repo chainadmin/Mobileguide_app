@@ -25,6 +25,14 @@
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
       "buildNumber": "2",
+      "supportsTablet": true,
+      "infoPlist": {
+        "SKAdNetworkItems": [
+          {
+            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
+          }
+        ]
+      },
       "config": {
         "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
       }
