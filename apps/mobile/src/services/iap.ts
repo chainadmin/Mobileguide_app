@@ -13,28 +13,33 @@ let isConnected = false;
 let purchaseSubscription_: any = null;
 let errorSubscription_: any = null;
 let cachedProducts: any[] = [];
+let iapUnavailable = false;
 let purchaseCallbacks: {
   onSuccess: () => void;
   onError: (error: string) => void;
 } | null = null;
 
 async function getIAPModule() {
-  if (Platform.OS === 'web') {
+  if (Platform.OS === 'web' || iapUnavailable) {
     return null;
   }
   try {
     const mod = await import('expo-iap');
-    return mod;
-  } catch (error) {
-    console.log('IAP module not available:', error);
+    const iapModule = mod?.initConnection ? mod : mod?.default?.initConnection ? mod.default : null;
+    if (!iapModule) {
+      iapUnavailable = true;
+      return null;
+    }
+    return iapModule;
+  } catch {
+    iapUnavailable = true;
     return null;
   }
 }
 
 export async function initializeIAP(): Promise<boolean> {
   try {
-    if (Platform.OS === 'web') {
-      console.log('IAP not available on web');
+    if (Platform.OS === 'web' || iapUnavailable) {
       return false;
     }
 
@@ -60,10 +65,12 @@ export async function initializeIAP(): Promise<boolean> {
       });
     }
 
-    console.log('IAP connected successfully');
     return true;
-  } catch (error) {
-    console.error('Error connecting to IAP:', error);
+  } catch (error: any) {
+    const msg = error?.message || '';
+    if (msg.includes('native') || msg.includes('NativeModule') || msg.includes('turboModule')) {
+      iapUnavailable = true;
+    }
     return false;
   }
 }
@@ -78,7 +85,6 @@ async function handlePurchaseSuccess(IAP: any, purchase: any) {
         purchase,
         isConsumable: false,
       });
-      console.log('Transaction finished:', purchase.productId);
     }
 
     if (purchaseCallbacks?.onSuccess) {
@@ -86,7 +92,7 @@ async function handlePurchaseSuccess(IAP: any, purchase: any) {
       purchaseCallbacks = null;
     }
   } catch (err) {
-    console.error('Error finishing transaction:', err);
+    console.log('Error finishing transaction:', err);
   }
 }
 
@@ -121,7 +127,7 @@ function getOfferTokenForProduct(productId: string): string {
 
 export async function getProducts(): Promise<any[]> {
   try {
-    if (Platform.OS === 'web') return [];
+    if (Platform.OS === 'web' || iapUnavailable) return [];
 
     const IAP = await getIAPModule();
     if (!IAP) return [];
@@ -143,8 +149,7 @@ export async function getProducts(): Promise<any[]> {
 
     cachedProducts = [...(subs || []), ...(inApp || [])];
     return cachedProducts;
-  } catch (error) {
-    console.error('Error getting products:', error);
+  } catch {
     return [];
   }
 }
@@ -155,8 +160,8 @@ export async function purchaseSubscription(
   onError: (error: string) => void
 ): Promise<void> {
   try {
-    if (Platform.OS === 'web') {
-      onError('Purchases are not available on web');
+    if (Platform.OS === 'web' || iapUnavailable) {
+      onError('Purchases are not available in this environment');
       return;
     }
 
@@ -204,8 +209,7 @@ export async function purchaseSubscription(
         type: 'in-app' as const,
       });
     }
-  } catch (error) {
-    console.error('Error purchasing:', error);
+  } catch {
     purchaseCallbacks = null;
     onError('An error occurred during purchase. Please try again.');
   }
@@ -216,7 +220,7 @@ export async function restorePurchases(): Promise<{
   hasActiveSubscription: boolean;
 }> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' || iapUnavailable) {
       return { success: false, hasActiveSubscription: false };
     }
 
@@ -247,15 +251,14 @@ export async function restorePurchases(): Promise<{
     }
 
     return { success: true, hasActiveSubscription: false };
-  } catch (error) {
-    console.error('Error restoring purchases:', error);
+  } catch {
     return { success: false, hasActiveSubscription: false };
   }
 }
 
 export async function checkActiveSubscription(): Promise<boolean> {
   try {
-    if (Platform.OS === 'web') {
+    if (Platform.OS === 'web' || iapUnavailable) {
       return false;
     }
 
@@ -278,15 +281,14 @@ export async function checkActiveSubscription(): Promise<boolean> {
     }
 
     return false;
-  } catch (error) {
-    console.error('Error checking subscription:', error);
+  } catch {
     return false;
   }
 }
 
 export async function disconnectIAP(): Promise<void> {
   try {
-    if (Platform.OS === 'web') return;
+    if (Platform.OS === 'web' || iapUnavailable) return;
 
     const IAP = await getIAPModule();
     if (!IAP) return;
@@ -304,7 +306,6 @@ export async function disconnectIAP(): Promise<void> {
       isConnected = false;
       cachedProducts = [];
     }
-  } catch (error) {
-    console.error('Error disconnecting IAP:', error);
+  } catch {
   }
 }
