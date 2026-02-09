@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { colors, spacing } from '../theme';
 
 const AD_UNIT_ID = 'ca-app-pub-1580761947831808/1129971883';
+
+let BannerAdComponent: any = null;
+let BannerAdSizeValue: any = null;
+let TestIdsValue: any = null;
 
 const PlaceholderBanner = () => (
   <View style={styles.banner}>
@@ -17,26 +20,52 @@ const AdBanner = () => {
   const { isPro, loading } = useEntitlements();
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(false);
+  const [adsAvailable, setAdsAvailable] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    
+    (async () => {
+      try {
+        const mod = await import('react-native-google-mobile-ads');
+        BannerAdComponent = mod.BannerAd;
+        BannerAdSizeValue = mod.BannerAdSize;
+        TestIdsValue = mod.TestIds;
+        setAdsAvailable(true);
+      } catch (e) {
+        console.log('Google Mobile Ads not available (Expo Go?):', e);
+        setAdsAvailable(false);
+      }
+    })();
+  }, []);
 
   if (loading || isPro) {
     return null;
   }
 
-  const adUnitId = __DEV__ ? TestIds.BANNER : AD_UNIT_ID;
+  if (Platform.OS === 'web' || !adsAvailable || !BannerAdComponent) {
+    return (
+      <View style={styles.container}>
+        <PlaceholderBanner />
+      </View>
+    );
+  }
+
+  const adUnitId = __DEV__ ? TestIdsValue.BANNER : AD_UNIT_ID;
 
   return (
     <View style={styles.container}>
       {(!adLoaded || adError) && <PlaceholderBanner />}
       {!adError && (
         <View style={adLoaded ? undefined : styles.hidden}>
-          <BannerAd
+          <BannerAdComponent
             unitId={adUnitId}
-            size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+            size={BannerAdSizeValue.ANCHORED_ADAPTIVE_BANNER}
             requestOptions={{
               requestNonPersonalizedAdsOnly: true,
             }}
             onAdLoaded={() => setAdLoaded(true)}
-            onAdFailedToLoad={(error) => {
+            onAdFailedToLoad={(error: any) => {
               console.log('Ad failed to load:', error);
               setAdError(true);
             }}
