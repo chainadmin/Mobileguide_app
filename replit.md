@@ -11,11 +11,20 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Monorepo Structure
-The project uses npm workspaces to manage two applications under `apps/`:
+The project uses npm workspaces to manage three applications under `apps/`:
 - `apps/mobile` - Expo React Native app (TypeScript)
 - `apps/api` - Express REST API (TypeScript)
+- `apps/web` - Landing page website for buzzreel.app (static HTML/CSS served by Express)
 
 This approach keeps frontend and backend code in a single repository while maintaining separate dependency management.
+
+### Website (apps/web)
+- **Purpose**: Landing page and legal pages for buzzreel.app custom domain
+- **Stack**: Static HTML/CSS served by Express.js
+- **Design**: Dark "neon magazine" theme matching the mobile app
+- **Pages**: Landing page (/), Privacy Policy (/privacy), Terms of Service (/terms)
+- **Deployment**: Replit static deployment with custom domain buzzreel.app
+- **Port**: 5000 (development)
 
 ### Frontend Architecture
 - **Framework**: Expo SDK 54 with React Native 0.81 and React 19.1
