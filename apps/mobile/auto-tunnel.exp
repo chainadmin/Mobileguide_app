@@ -1,0 +1,14 @@
+#!/usr/bin/env expect -f
+
+set timeout -1
+set env(EXPO_PUBLIC_TMDB_API_KEY) $env(TMDB_API_KEY)
+
+spawn npx expo start --tunnel --port 5000
+
+expect {
+    "Log in" {
+        send -- "\033\[B\r"
+        exp_continue
+    }
+    eof
+}
