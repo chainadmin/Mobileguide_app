@@ -23,13 +23,13 @@ args = "Mobile App"
 name = "Buzzreel Website"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "cd apps/web && node server.js"
-waitForPort = 5000
-
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd apps/mobile && EXPO_PUBLIC_TMDB_API_KEY=$TMDB_API_KEY npx expo start --web --port 5000"
+waitForPort = 5000
 
 [[workflows.workflow]]
 name = "Mobile App"
