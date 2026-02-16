@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useEntitlements } from '../context/EntitlementsContext';
 import { colors, spacing } from '../theme';
 
@@ -13,15 +12,31 @@ const PlaceholderBanner = () => (
   </View>
 );
 
+function getGoogleMobileAds() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
+
+  try {
+    // Use runtime resolution so Expo Go can still run without this native module.
+    return require('react-native-google-mobile-ads');
+  } catch (error) {
+    console.log('Google Mobile Ads module unavailable:', error);
+    return null;
+  }
+}
+
 const AdBanner = () => {
   const { isPro, loading } = useEntitlements();
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(false);
+  const adsModule = getGoogleMobileAds();
 
-  if (loading || isPro) {
+  if (loading || isPro || !adsModule) {
     return null;
   }
 
+  const { BannerAd, BannerAdSize, TestIds } = adsModule;
   const adUnitId = __DEV__ ? TestIds.BANNER : AD_UNIT_ID;
 
   return (
@@ -36,7 +51,7 @@ const AdBanner = () => {
               requestNonPersonalizedAdsOnly: true,
             }}
             onAdLoaded={() => setAdLoaded(true)}
-            onAdFailedToLoad={(error) => {
+            onAdFailedToLoad={(error: unknown) => {
               console.log('Ad failed to load:', error);
               setAdError(true);
             }}
