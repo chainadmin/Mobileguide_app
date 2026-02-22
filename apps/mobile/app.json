@@ -3,7 +3,7 @@
     "name": "Buzzreel",
     "slug": "buzzreel",
     "version": "2.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "platforms": [
       "ios",
       "android",
@@ -11,6 +11,15 @@
     ],
     "sdkVersion": "54.0.0",
     "icon": "./assets/icon.png",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000",
+      "translucent": true
+    },
+    "androidNavigationBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000"
+    },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/icon.png",
@@ -25,7 +34,8 @@
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
       "buildNumber": "2",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "requireFullScreen": false
     },
     "plugins": [
       "./plugins/withDisableCppWarningsAsErrors",
