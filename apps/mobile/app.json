@@ -29,6 +29,9 @@
       "versionCode": 10,
       "permissions": [
         "com.android.vending.BILLING"
+      ],
+      "blockedPermissions": [
+        "com.google.android.gms.permission.AD_ID"
       ]
     },
     "ios": {
