@@ -47,14 +47,14 @@
         "expo-build-properties",
         {
           "android": {
-            "newArchEnabled": false,
+            "newArchEnabled": true,
             "kotlinVersion": "2.2.0",
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "extraProguardRules": "-dontwarn com.swmansion.rnscreens.**"
           },
           "ios": {
-            "newArchEnabled": false
+            "newArchEnabled": true
           }
         }
       ],
