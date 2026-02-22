@@ -19,27 +19,13 @@
       "package": "com.buzzreel.app",
       "versionCode": 10,
       "permissions": [
-        "com.google.android.gms.permission.AD_ID",
         "com.android.vending.BILLING"
-      ],
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
-      }
+      ]
     },
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
       "buildNumber": "2",
-      "supportsTablet": true,
-      "infoPlist": {
-        "SKAdNetworkItems": [
-          {
-            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
-          }
-        ]
-      },
-      "config": {
-        "googleMobileAdsAppId": "ca-app-pub-1580761947831808~4467016439"
-      }
+      "supportsTablet": true
     },
     "plugins": [
       "./plugins/withDisableCppWarningsAsErrors",
@@ -58,15 +44,7 @@
           }
         }
       ],
-      [
-        "react-native-google-mobile-ads",
-        {
-          "androidAppId": "ca-app-pub-1580761947831808~4467016439",
-          "iosAppId": "ca-app-pub-1580761947831808~4467016439"
-        }
-      ],
-      "expo-iap",
-      "./plugins/withAdIdPermission"
+      "expo-iap"
     ],
     "extra": {
       "eas": {

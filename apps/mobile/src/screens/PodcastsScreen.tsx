@@ -3,7 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIn
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
-import AdBanner from '../components/AdBanner';
+
 import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
 import { useRegion } from '../context/RegionContext';
@@ -271,7 +271,7 @@ const PodcastsScreen = () => {
         </View>
       )}
     </ScrollView>
-    <AdBanner />
+
     </View>
   );
 };

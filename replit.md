@@ -187,12 +187,10 @@ This approach keeps frontend and backend code in a single repository while maint
   - WatchlistScreen displays followed podcasts with BuzzMeter showing regional views
   - Fixed podcast loading in Watchlist (waits for guestId before fetching)
   - Hidden scrollbar on PodcastShowDetailScreen for cleaner UI
-- **Feb 2026**: Integrated Google AdMob for banner ads
-  - App ID: ca-app-pub-1580761947831808~4467016439 configured in app.json
-  - Ad Unit ID: ca-app-pub-1580761947831808/1129971883 for banner ads
-  - AdBanner component shows real Google ads on mobile (custom dev build required)
-  - Falls back to styled placeholder on web and Expo Go
-  - Ads hidden for Pro subscribers (ad-free experience)
+- **Feb 2026**: Removed Google AdMob banner ads
+  - react-native-google-mobile-ads v16 incompatible with Expo SDK 54 (build failures)
+  - Removed AdBanner component, withAdIdPermission plugin, and all ad config
+  - Enabled New Architecture (newArchEnabled: true) for future compatibility
 - **Feb 2026**: Added Search feature with buzz-based ranking
   - Search icon (🔍) in Trending screen header opens SearchScreen
   - SearchScreen shows: Recent Searches, Suggested Now (🔥), Upcoming (📅)

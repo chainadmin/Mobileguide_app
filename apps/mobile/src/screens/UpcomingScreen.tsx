@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import AdBanner from '../components/AdBanner';
+
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
@@ -197,7 +197,7 @@ const UpcomingScreen = () => {
           </View>
         }
       />
-      <AdBanner />
+
     </View>
   );
 };
