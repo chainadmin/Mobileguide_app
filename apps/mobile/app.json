@@ -42,6 +42,7 @@
     },
     "plugins": [
       "./plugins/withDisableCppWarningsAsErrors",
+      "./plugins/withRemoveAdId",
       [
         "expo-build-properties",
         {
