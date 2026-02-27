@@ -38,7 +38,10 @@
       "bundleIdentifier": "com.buzzreel.app",
       "buildNumber": "2",
       "supportsTablet": true,
-      "requireFullScreen": false
+      "requireFullScreen": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "./plugins/withDisableCppWarningsAsErrors",
