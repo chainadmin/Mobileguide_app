@@ -166,7 +166,9 @@ const WatchlistScreen = () => {
           <Text style={styles.planLabel}>{isPro ? 'Pro Plan' : 'Free Plan'}</Text>
           <View style={[styles.countPill, isPro && styles.countPillPro]}>
             <Text style={[styles.countText, isPro && styles.countTextPro]}>
-              {isPro ? `${watchlist.length + followedPodcasts.length} saved` : `${watchlist.length + followedPodcasts.length}/${maxSlots}`}
+              {isPro
+                ? `${watchlist.length} titles · ${followedPodcasts.length} podcasts`
+                : `${watchlist.length}/${maxSlots} titles · ${followedPodcasts.length}/${maxSlots} podcasts`}
             </Text>
           </View>
         </View>
