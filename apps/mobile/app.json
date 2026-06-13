@@ -36,8 +36,8 @@
     },
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
-      "buildNumber": "4",
-      "supportsTablet": true,
+      "buildNumber": "5",
+      "supportsTablet": false,
       "requireFullScreen": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
