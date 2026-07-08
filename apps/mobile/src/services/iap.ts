@@ -24,7 +24,7 @@ async function getIAPModule() {
     return null;
   }
   try {
-    const mod = await import('expo-iap');
+    const mod: any = await import('expo-iap');
     const iapModule = mod?.initConnection ? mod : mod?.default?.initConnection ? mod.default : null;
     if (!iapModule) {
       iapUnavailable = true;

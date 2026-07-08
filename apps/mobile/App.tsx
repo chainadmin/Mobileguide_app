@@ -1,6 +1,7 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { colors } from './src/theme';
 import { RegionProvider, useRegion } from './src/context/RegionContext';
 import { WatchlistProvider } from './src/context/WatchlistContext';
@@ -52,6 +53,18 @@ const darkTheme = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
+const smoothStackScreenOptions: NativeStackNavigationOptions = {
+  headerStyle: { backgroundColor: colors.background },
+  headerTintColor: colors.textPrimary,
+  headerTitleStyle: { fontWeight: '700' },
+  contentStyle: { backgroundColor: colors.background },
+  animation: 'slide_from_right',
+  animationDuration: 280,
+  animationTypeForReplace: 'push',
+  gestureEnabled: true,
+  fullScreenGestureEnabled: true
+};
+
 const Tabs = () => {
   const { region } = useRegion();
   const showPodcasts = region && PODCAST_REGIONS.includes(region.code);
@@ -60,6 +73,7 @@ const Tabs = () => {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
+        lazy: true,
         tabBarStyle: {
           backgroundColor: colors.tabBarBackground,
           borderTopColor: colors.tabBarBorder,
@@ -90,18 +104,11 @@ const AppContent = () => {
         <AlertsProvider>
           <WatchlistProvider>
             <NavigationContainer theme={darkTheme}>
-            <Stack.Navigator
-              screenOptions={{
-                headerStyle: { backgroundColor: colors.background },
-                headerTintColor: colors.textPrimary,
-                headerTitleStyle: { fontWeight: '700' },
-                contentStyle: { backgroundColor: colors.background }
-              }}
-            >
+            <Stack.Navigator screenOptions={smoothStackScreenOptions}>
               <Stack.Screen
                 name="Splash"
                 component={SplashScreen}
-                options={{ headerShown: false }}
+                options={{ headerShown: false, animation: 'fade', animationDuration: 350 }}
               />
               <Stack.Screen
                 name="RegionSelect"
@@ -121,7 +128,7 @@ const AppContent = () => {
               <Stack.Screen
                 name="Paywall"
                 component={PaywallScreen}
-                options={{ title: 'Go Pro', presentation: 'modal' }}
+                options={{ title: 'Go Pro', presentation: 'modal', animation: 'slide_from_bottom' }}
               />
               <Stack.Screen
                 name="Settings"

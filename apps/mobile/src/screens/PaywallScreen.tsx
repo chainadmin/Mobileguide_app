@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { colors, spacing, borderRadius } from '../theme';
+import { useEntitlements } from '../context/EntitlementsContext';
+import { getProducts, purchaseSubscription, PRODUCT_IDS } from '../services/iap';
 
 const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app';
-import { useEntitlements } from '../context/EntitlementsContext';
-import { purchaseSubscription, PRODUCT_IDS } from '../services/iap';
-
 const isIOS = Platform.OS === 'ios';
 
 type PlanType = 'monthly' | 'yearly' | 'lifetime';
@@ -15,6 +14,7 @@ type Plan = {
   id: PlanType;
   productId: string;
   name: string;
+  displayName: string;
   price: string;
   period: string;
   savings?: string;
@@ -27,6 +27,7 @@ const PLANS: Plan[] = [
     id: 'monthly',
     productId: PRODUCT_IDS.MONTHLY,
     name: 'Monthly',
+    displayName: 'Buzzreel Pro Monthly',
     price: '$1.99',
     period: '/month'
   },
@@ -34,6 +35,7 @@ const PLANS: Plan[] = [
     id: 'yearly',
     productId: PRODUCT_IDS.YEARLY,
     name: 'Yearly',
+    displayName: 'Buzzreel Pro Yearly',
     price: '$9.99',
     period: '/year',
     savings: 'Save 58%',
@@ -43,6 +45,7 @@ const PLANS: Plan[] = [
     id: 'lifetime',
     productId: PRODUCT_IDS.LIFETIME,
     name: 'Lifetime',
+    displayName: 'Buzzreel Pro Lifetime',
     price: '$24.99',
     period: 'one-time',
     savings: 'Best Deal',
@@ -79,6 +82,37 @@ const PaywallScreen = () => {
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('yearly');
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [storeProducts, setStoreProducts] = useState<any[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (Platform.OS === 'web') return;
+
+    getProducts().then((products) => {
+      if (isMounted) {
+        setStoreProducts(products);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const plans = useMemo(() => {
+    return PLANS.map((plan) => {
+      const product = storeProducts.find((item: any) => item.id === plan.productId || item.productId === plan.productId);
+      const localizedPrice = product?.localizedPrice || product?.displayPrice || product?.priceString || product?.price;
+      const localizedTitle = product?.displayName || product?.title || product?.name;
+
+      return {
+        ...plan,
+        displayName: localizedTitle || plan.displayName,
+        price: localizedPrice || plan.price
+      };
+    });
+  }, [storeProducts]);
 
   const handleSubscribe = async () => {
     if (Platform.OS === 'web') {
@@ -90,7 +124,7 @@ const PaywallScreen = () => {
       return;
     }
 
-    const plan = PLANS.find(p => p.id === selectedPlan);
+    const plan = plans.find(p => p.id === selectedPlan);
     if (!plan) return;
 
     setPurchasing(true);
@@ -160,7 +194,7 @@ const PaywallScreen = () => {
       </View>
 
       <View style={styles.plansSection}>
-        {PLANS.map((plan) => (
+        {plans.map((plan) => (
           <TouchableOpacity
             key={plan.id}
             style={[
@@ -192,6 +226,7 @@ const PaywallScreen = () => {
                 </View>
                 <View>
                   <Text style={styles.planName}>{plan.name}</Text>
+                  <Text style={styles.planDisplayName}>{plan.displayName}</Text>
                   {plan.savings && (
                     <Text style={styles.savingsText}>{plan.savings}</Text>
                   )}
@@ -215,7 +250,7 @@ const PaywallScreen = () => {
         {purchasing ? (
           <ActivityIndicator color={colors.background} />
         ) : (
-          <Text style={styles.subscribeText}>Subscribe Now</Text>
+          <Text style={styles.subscribeText}>{selectedPlan === 'lifetime' ? 'Buy Lifetime Access' : 'Continue'}</Text>
         )}
       </TouchableOpacity>
 
@@ -232,8 +267,8 @@ const PaywallScreen = () => {
 
       <Text style={styles.legalText}>
         {isIOS
-          ? 'Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions by going to your App Store account settings. Lifetime is a one-time purchase with no recurring charges.'
-          : 'Payment will be charged to your Google Play account. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Lifetime is a one-time purchase with no recurring charges. Manage purchases in your Google Play settings.'}
+          ? 'Buzzreel Pro Monthly and Buzzreel Pro Yearly are auto-renewable subscriptions. Payment will be charged to your Apple ID account at confirmation of purchase. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Your account will be charged for renewal within 24 hours prior to the end of the current period. You can manage and cancel your subscriptions in App Store account settings. Buzzreel Pro Lifetime is a one-time purchase with no recurring charges.'
+          : 'Buzzreel Pro Monthly and Buzzreel Pro Yearly are auto-renewable subscriptions. Payment will be charged to your Google Play account. Subscriptions automatically renew unless canceled at least 24 hours before the end of the current period. Buzzreel Pro Lifetime is a one-time purchase with no recurring charges. Manage purchases in your Google Play settings.'}
       </Text>
 
       {isIOS && (
@@ -389,6 +424,11 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 16,
     fontWeight: '600'
+  },
+  planDisplayName: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2
   },
   savingsText: {
     color: colors.accent,
