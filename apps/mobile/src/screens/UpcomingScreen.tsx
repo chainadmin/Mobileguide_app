@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
-import { SectionList, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { SectionList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../App';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
@@ -37,7 +40,10 @@ type Section = {
   data: DisplayItem[];
 };
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+
 const UpcomingScreen = () => {
+  const navigation = useNavigation<NavigationProp>();
   const { region } = useRegion();
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
@@ -148,26 +154,33 @@ const UpcomingScreen = () => {
 
   if (loading) {
     return (
-      <View style={styles.screen}>
+      <SafeAreaView style={styles.screen} edges={['top']}>
         <View style={styles.container}>
           <SectionHeader title="UPCOMING" subtitle="Next 14 days of releases." />
           <SkeletonCard size="small" />
           <SkeletonCard size="small" />
           <SkeletonCard size="small" />
         </View>
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
-          <View style={styles.header}>
+          <View style={styles.headerRow}>
             <SectionHeader title="UPCOMING" subtitle="Next 14 days of releases." />
+            <TouchableOpacity 
+              style={styles.settingsButton}
+              onPress={() => navigation.navigate('Settings')}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.settingsIcon}>⚙️</Text>
+            </TouchableOpacity>
           </View>
         }
         renderSectionHeader={({ section }) => (
@@ -198,7 +211,7 @@ const UpcomingScreen = () => {
         }
       />
 
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -211,8 +224,22 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     paddingBottom: 90
   },
-  header: {
-    marginBottom: spacing.sm
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.sm,
+    gap: spacing.sm
+  },
+  settingsButton: {
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  settingsIcon: {
+    fontSize: 18
   },
   dateHeaderContainer: {
     flexDirection: 'row',
