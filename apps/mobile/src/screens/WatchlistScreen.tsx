@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIn
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import BuzzMeter from '../components/BuzzMeter';
 import EmptyState from '../components/EmptyState';
@@ -152,7 +153,7 @@ const WatchlistScreen = () => {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <SectionHeader title="WATCHLIST" subtitle="Your saved lineup." />
@@ -288,7 +289,7 @@ const WatchlistScreen = () => {
       )}
     </ScrollView>
 
-    </View>
+    </SafeAreaView>
   );
 };
 

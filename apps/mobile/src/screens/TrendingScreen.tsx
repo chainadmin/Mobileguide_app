@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
@@ -208,7 +209,7 @@ const TrendingScreen = () => {
   );
 
   return (
-  <View style={styles.screen}>
+  <SafeAreaView style={styles.screen} edges={['top']}>
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <TouchableOpacity 
@@ -227,11 +228,18 @@ const TrendingScreen = () => {
             </View>
           )}
           <TouchableOpacity 
-            style={styles.searchButton}
+            style={styles.iconButton}
             onPress={() => navigation.navigate('Search')}
             activeOpacity={0.7}
           >
-            <Text style={styles.searchIcon}>🔍</Text>
+            <Text style={styles.iconText}>🔍</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.iconButton}
+            onPress={() => navigation.navigate('Settings')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.iconText}>⚙️</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -282,7 +290,7 @@ const TrendingScreen = () => {
       {newThisWeek.length > 0 && renderDigestStrip(newThisWeek, 'NEW THIS WEEK', 'Fresh releases to check out.')}
     </ScrollView>
 
-  </View>
+  </SafeAreaView>
   );
 };
 
@@ -346,14 +354,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700'
   },
-  searchButton: {
+  iconButton: {
     backgroundColor: colors.surface,
     padding: spacing.sm,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: colors.border
   },
-  searchIcon: {
+  iconText: {
     fontSize: 18
   },
   filterBanner: {

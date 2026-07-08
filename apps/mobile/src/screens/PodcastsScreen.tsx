@@ -3,6 +3,7 @@ import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIn
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import SectionHeader from '../components/SectionHeader';
 import { colors, spacing, borderRadius } from '../theme';
@@ -229,7 +230,7 @@ const PodcastsScreen = () => {
   }
 
   return (
-    <View style={styles.screen}>
+    <SafeAreaView style={styles.screen} edges={['top']}>
     <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
       <View style={styles.headerRow}>
         <TouchableOpacity 
@@ -239,6 +240,13 @@ const PodcastsScreen = () => {
         >
           <Text style={styles.regionText}>{region?.name || 'Select Region'}</Text>
           <Text style={styles.changeText}>Change</Text>
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Settings')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.settingsIcon}>⚙️</Text>
         </TouchableOpacity>
       </View>
 
@@ -272,7 +280,7 @@ const PodcastsScreen = () => {
       )}
     </ScrollView>
 
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -328,7 +336,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.lg
+    marginBottom: spacing.lg,
+    gap: spacing.sm
+  },
+  settingsButton: {
+    backgroundColor: colors.surface,
+    padding: spacing.sm,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border
+  },
+  settingsIcon: {
+    fontSize: 18
   },
   regionBadge: {
     flex: 1,
