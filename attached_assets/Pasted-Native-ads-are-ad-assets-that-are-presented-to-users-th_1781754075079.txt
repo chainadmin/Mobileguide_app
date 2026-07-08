@@ -1,0 +1,153 @@
+Native ads are ad assets that are presented to users through UI components that are native to the platform. They're shown using the same types of views with which you're already building your layouts, and can be formatted to match your app's visual design.
+
+When a native ad loads, your app receives an ad object that contains its assets, and the app—rather than GMA Next-Gen SDK—is then responsible for displaying them.
+
+Broadly speaking, there are two parts to successfully implementing native ads: Loading an ad using the SDK and then displaying the ad content in your app.
+
+This page shows how to use the SDK to load native ads. Tip: Learn more about native ads in our Native Ads Playbook.
+
+Samples are available for Java and Kotlin.
+You can also check out some customer success stories: case study 1, case study 2.
+
+Prerequisites
+Set up GMA Next-Gen SDK.
+GMA Next-Gen SDK 0.6.0-alpha01 or higher.
+Always test with test ads
+When building and testing your apps, make sure you use test ads rather than live, production ads. Failure to do so can lead to suspension of your account.
+
+The easiest way to load test ads is to use our dedicated test ad unit ID for native ads:
+
+Ad format	Sample ad unit ID
+Native	ca-app-pub-3940256099942544/2247696110
+Native Video	ca-app-pub-3940256099942544/1044960115
+Load an ad
+Warning: Before loading ads, you must initialize GMA Next-Gen SDK.
+To load a native ad, call NativeAdLoader.load() method, which takes a NativeAdRequest and a NativeAdLoaderCallback.
+
+
+import com.google.android.libraries.ads.mobile.sdk.common.LoadAdError
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAd
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoader
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdLoaderCallback
+import com.google.android.libraries.ads.mobile.sdk.nativead.NativeAdRequest
+
+class NativeFragment : Fragment() {
+
+  private var nativeAd: NativeAd? = null
+
+  override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+    super.onViewCreated(view, savedInstanceState)
+    loadAd()
+  }
+
+  private fun loadAd() {
+    // Build an ad request with native ad options to customize the ad.
+    val adRequest = NativeAdRequest
+      .Builder(AD_UNIT_ID, listOf(NativeAd.NativeAdType.NATIVE))
+      .build()
+
+    val adCallback =
+      object : NativeAdLoaderCallback {
+        override fun onNativeAdLoaded(nativeAd: NativeAd) {
+          // Called when a native ad has loaded.
+        }
+        override fun onAdFailedToLoad(adError: LoadAdError) {
+          // Called when a native ad has failed to load.
+        }
+      }
+
+    // Load the native ad with our request and callback.
+    NativeAdLoader.load(adRequest, adCallback)
+  }
+
+  companion object {
+    // Sample native ad unit ID.
+    const val AD_UNIT_ID = "ca-app-pub-3940256099942544/2247696110"
+  }
+}
+Set the native ad event callback
+When handling onNativeAdLoaded, set the received NativeAd with a NativeAdEventCallback to define functions for receiving native ad lifecycle events:
+
+
+  nativeAd.adEventCallback =
+    object : NativeAdEventCallback {
+      override fun onAdShowedFullScreenContent() {
+        // Native ad showed full screen content.
+      }
+      override fun onAdDismissedFullScreenContent() {
+        // Native ad dismissed full screen content.
+      }
+      override fun onAdFailedToShowFullScreenContent {
+        // Native ad failed to show full screen content.
+      }
+      override fun onAdImpression() {
+        // Native ad recorded an impression.
+      }
+      override fun onAdClicked() {
+        // Native ad recorded a click.
+      }
+    }
+Optional: Load multiple ads
+To load multiple ads, call load() with the optional numberOfAds parameter. The maximum value you can set is 5, which represents the number of ads. The GMA Next-Gen SDK might not return the exact number of ads you requested.
+
+
+private fun loadAd() {
+  // Build an ad request with native ad options to customize the ad.
+  val adRequest = NativeAdRequest
+    .Builder(AD_UNIT_ID, listOf(NativeAd.NativeAdType.NATIVE))
+    .build()
+
+  val adCallback =
+    object : NativeAdLoaderCallback {
+      override fun onNativeAdLoaded(nativeAd: NativeAd) {
+        // Called when a native ad has loaded.
+      }
+      override fun onAdFailedToLoad(adError: LoadAdError) {
+        // Called when a native ad has failed to load.
+      }
+      override fun onAdLoadingCompleted() {
+        // Called when all native ads have loaded.
+      }
+    }
+
+  // Load the native ad with our request and callback.
+  NativeAdLoader.load(adRequest, 3, adCallback)
+}
+Ads that GMA Next-Gen SDK returns are unique, though ads from reserved inventory or third-party buyers might not be unique.
+
+If you're using mediation, don't call the load() method. Requests for multiple native ads don't work for ad unit IDs configured for mediation.
+
+Best practices
+Follow these rules when loading ads.
+
+Apps that use native ads in a list should precache the list of ads.
+
+When precaching ads, clear your cache and reload after one hour.
+
+Limit native ad caching to only what is needed. For example when precaching, only cache the ads that are immediately visible on the screen. Native ads have a large memory footprint, and caching native ads without destroying them results in excessive memory use.
+
+Destroy native ads when no longer in use.
+
+Hardware acceleration for video ads
+In order for video ads to show successfully in your native ad views, hardware acceleration must be enabled.
+
+Hardware acceleration is enabled by default, but some apps may choose to disable it. If this applies to your app, we recommend enabling hardware acceleration for Activity classes that use ads.
+
+Enabling hardware acceleration
+If your app does not behave properly with hardware acceleration turned on globally, you can control it for individual activities as well. To enable or disable hardware acceleration, use the android:hardwareAccelerated attribute for the <application> and <activity> elements in your AndroidManifest.xml. The following example enables hardware acceleration for the entire app but disables it for one activity:
+
+
+<application android:hardwareAccelerated="true">
+    <!-- For activities that use ads, hardwareAcceleration should be true. -->
+    <activity android:hardwareAccelerated="true" />
+    <!-- For activities that don't use ads, hardwareAcceleration can be false. -->
+    <activity android:hardwareAccelerated="false" />
+</application>
+
+See the HW acceleration guide for more information about options for controlling hardware acceleration. Note that individual ad views cannot be enabled for hardware acceleration if the Activity is disabled, so the Activity itself must have hardware acceleration enabled.
+
+Display your ad
+Once you have loaded an ad, all that remains is to display it to your users. Head over to our Native Advanced guide to see how.
+
+Example
+Download and run the example app that demonstrates the use of the GMA Next-Gen SDK.
