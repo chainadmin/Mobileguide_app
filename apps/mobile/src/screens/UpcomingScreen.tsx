@@ -49,7 +49,10 @@ const UpcomingScreen = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    if (!region) return;
+    if (!region) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -150,6 +153,28 @@ const UpcomingScreen = () => {
       day: 'numeric' 
     };
     return date.toLocaleDateString('en-US', options);
+  }
+
+  if (!region && !loading) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.container}>
+          <SectionHeader title="UPCOMING" subtitle="Next 14 days of releases." />
+          <TouchableOpacity
+            style={styles.noRegionBanner}
+            onPress={() => navigation.navigate('RegionSelect')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.noRegionIcon}>📍</Text>
+            <View style={styles.noRegionText}>
+              <Text style={styles.noRegionTitle}>Set your region to see content</Text>
+              <Text style={styles.noRegionSub}>Tap here to choose your country</Text>
+            </View>
+            <Text style={styles.noRegionArrow}>›</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   if (loading) {
@@ -284,6 +309,38 @@ const styles = StyleSheet.create({
   emptyText: {
     color: colors.textMuted,
     fontSize: 14
+  },
+  noRegionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent + '20',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginTop: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.accent + '40',
+    gap: spacing.sm
+  },
+  noRegionIcon: {
+    fontSize: 22
+  },
+  noRegionText: {
+    flex: 1
+  },
+  noRegionTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  noRegionSub: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2
+  },
+  noRegionArrow: {
+    color: colors.accent,
+    fontSize: 22,
+    fontWeight: '700'
   }
 });
 

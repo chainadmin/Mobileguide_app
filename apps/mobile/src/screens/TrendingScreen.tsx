@@ -75,7 +75,10 @@ const TrendingScreen = () => {
   }, []);
 
   const fetchData = useCallback(async () => {
-    if (!region) return;
+    if (!region) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -244,6 +247,21 @@ const TrendingScreen = () => {
         </View>
       </View>
       
+      {!region && !loading && (
+        <TouchableOpacity
+          style={styles.noRegionBanner}
+          onPress={() => navigation.navigate('RegionSelect')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.noRegionIcon}>📍</Text>
+          <View style={styles.noRegionText}>
+            <Text style={styles.noRegionTitle}>Set your region to see content</Text>
+            <Text style={styles.noRegionSub}>Tap here to choose your country</Text>
+          </View>
+          <Text style={styles.noRegionArrow}>›</Text>
+        </TouchableOpacity>
+      )}
+
       {activeProviderIds && (
         <View style={styles.filterBanner}>
           <Text style={styles.filterIcon}>📺</Text>
@@ -430,6 +448,38 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: spacing.sm,
     textAlign: 'center'
+  },
+  noRegionBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.accent + '20',
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.accent + '40',
+    gap: spacing.sm
+  },
+  noRegionIcon: {
+    fontSize: 22
+  },
+  noRegionText: {
+    flex: 1
+  },
+  noRegionTitle: {
+    color: colors.textPrimary,
+    fontSize: 14,
+    fontWeight: '700'
+  },
+  noRegionSub: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2
+  },
+  noRegionArrow: {
+    color: colors.accent,
+    fontSize: 22,
+    fontWeight: '700'
   }
 });
 

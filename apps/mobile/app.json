@@ -26,7 +26,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 14,
+      "versionCode": 15,
       "permissions": [
         "com.android.vending.BILLING"
       ],
@@ -36,7 +36,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "supportsTablet": false,
       "requireFullScreen": false,
       "infoPlist": {
