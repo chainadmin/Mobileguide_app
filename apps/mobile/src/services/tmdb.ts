@@ -60,6 +60,38 @@ export type WatchProviderResult = {
   buy?: WatchProvider[];
 };
 
+const ANIMATION_GENRE_ID = '16';
+const LOCAL_LIVE_ACTION_TARGET = 8;
+
+function mergeRegionalResults(
+  liveAction: TrendingItem[],
+  local: TrendingItem[],
+  streamable: TrendingItem[],
+  mediaType: MediaType
+): TrendingItem[] {
+  const seen = new Set<number>();
+  const combined: TrendingItem[] = [];
+
+  const addUnique = (items: TrendingItem[], limit?: number) => {
+    let added = 0;
+    for (const item of items) {
+      if (seen.has(item.id)) continue;
+      seen.add(item.id);
+      combined.push({ ...item, media_type: mediaType });
+      added += 1;
+      if (limit !== undefined && added >= limit) break;
+    }
+  };
+
+  // Lead with locally produced live-action titles so animation cannot dominate
+  // regional feeds, while still retaining popular local animation afterwards.
+  addUnique(liveAction, LOCAL_LIVE_ACTION_TARGET);
+  addUnique(local);
+  addUnique(streamable);
+
+  return combined.slice(0, 20);
+}
+
 async function fetchTMDB<T>(endpoint: string, params: Record<string, string> = {}): Promise<T> {
   const url = new URL(`${TMDB_BASE_URL}${endpoint}`);
   url.searchParams.set('api_key', API_KEY);
@@ -94,35 +126,22 @@ export async function getPopularMovies(region: string = 'US', providerIds?: stri
     baseParams.with_watch_providers = providerIds.join('|');
   }
   
-  const [streamable, local] = await Promise.all([
+  const localParams: Record<string, string> = {
+    with_origin_country: region,
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '10'
+  };
+
+  const [streamable, localLiveAction, local] = await Promise.all([
     fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', baseParams),
     fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', {
-      with_origin_country: region,
-      sort_by: 'popularity.desc',
-      'vote_count.gte': '10'
-    })
+      ...localParams,
+      without_genres: ANIMATION_GENRE_ID
+    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/movie', localParams)
   ]);
-  
-  const seen = new Set<number>();
-  const combined: TrendingItem[] = [];
-  
-  // Prioritize local content first (content from the region)
-  for (const item of local.results.slice(0, 10)) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      combined.push({ ...item, media_type: 'movie' as MediaType });
-    }
-  }
-  
-  // Then add streamable content
-  for (const item of streamable.results) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      combined.push({ ...item, media_type: 'movie' as MediaType });
-    }
-  }
-  
-  return combined.slice(0, 20);
+
+  return mergeRegionalResults(localLiveAction.results, local.results, streamable.results, 'movie');
 }
 
 export async function getPopularTV(region: string = 'US', providerIds?: string[]): Promise<TrendingItem[]> {
@@ -137,35 +156,22 @@ export async function getPopularTV(region: string = 'US', providerIds?: string[]
     baseParams.with_watch_providers = providerIds.join('|');
   }
   
-  const [streamable, local] = await Promise.all([
+  const localParams: Record<string, string> = {
+    with_origin_country: region,
+    sort_by: 'popularity.desc',
+    'vote_count.gte': '10'
+  };
+
+  const [streamable, localLiveAction, local] = await Promise.all([
     fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', baseParams),
     fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', {
-      with_origin_country: region,
-      sort_by: 'popularity.desc',
-      'vote_count.gte': '10'
-    })
+      ...localParams,
+      without_genres: ANIMATION_GENRE_ID
+    }),
+    fetchTMDB<{ results: TrendingItem[] }>('/discover/tv', localParams)
   ]);
-  
-  const seen = new Set<number>();
-  const combined: TrendingItem[] = [];
-  
-  // Prioritize local content first (content from the region)
-  for (const item of local.results.slice(0, 10)) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      combined.push({ ...item, media_type: 'tv' as MediaType });
-    }
-  }
-  
-  // Then add streamable content
-  for (const item of streamable.results) {
-    if (!seen.has(item.id)) {
-      seen.add(item.id);
-      combined.push({ ...item, media_type: 'tv' as MediaType });
-    }
-  }
-  
-  return combined.slice(0, 20);
+
+  return mergeRegionalResults(localLiveAction.results, local.results, streamable.results, 'tv');
 }
 
 export async function getRegionalContent(region: string = 'US', providerIds?: string[]): Promise<TrendingItem[]> {
@@ -177,10 +183,13 @@ export async function getRegionalContent(region: string = 'US', providerIds?: st
   console.log(`Got ${movies.length} movies and ${tvShows.length} TV shows for ${region}`);
   console.log(`First movie: ${movies[0]?.title || 'none'}, First TV: ${tvShows[0]?.name || 'none'}`);
   
-  const combined = [...movies.slice(0, 10), ...tvShows.slice(0, 10)];
-  const sorted = combined.sort((a, b) => b.vote_average - a.vote_average);
-  
-  return sorted;
+  const combined: TrendingItem[] = [];
+  for (let index = 0; index < 10; index += 1) {
+    if (movies[index]) combined.push(movies[index]);
+    if (tvShows[index]) combined.push(tvShows[index]);
+  }
+
+  return combined;
 }
 
 export async function getUpcoming(region: string = 'US'): Promise<TrendingItem[]> {
