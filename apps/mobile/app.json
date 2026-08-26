@@ -36,7 +36,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.buzzreel.app",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "supportsTablet": false,
       "requireFullScreen": false,
       "infoPlist": {
