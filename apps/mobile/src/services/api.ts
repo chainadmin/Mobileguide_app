@@ -2,7 +2,9 @@ const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app'
 
 export async function getBuzzCount(region: string, mediaType: string, tmdbId: number): Promise<number> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/buzz/${region}/${mediaType}/${tmdbId}`);
+    const response = await fetch(`${API_BASE_URL}/api/buzz/${region}/${mediaType}/${tmdbId}`, {
+      cache: 'no-store'
+    });
     if (!response.ok) return 0;
     const data = await response.json();
     return data.viewCount ?? 0;

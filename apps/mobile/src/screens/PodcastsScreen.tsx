@@ -76,27 +76,52 @@ const PodcastsScreen = () => {
         fetch(`${API_BASE}/api/podcasts/follows?guestId=${guestId}`)
       ]);
 
-      if (buzzRes.ok) {
-        const buzzData = await buzzRes.json();
-        setBuzzingNow(buzzData.shows || []);
+      const buzzShows: PodcastShow[] = buzzRes.ok ? (await buzzRes.json()).shows || [] : [];
+      const topShows: PodcastShow[] = topRes.ok ? (await topRes.json()).shows || [] : [];
+      const followsData = followsRes.ok ? await followsRes.json() : { follows: [] };
+      const followedShows: PodcastShow[] = (followsData.follows || []).map((follow: {
+        show_id: number;
+        title: string;
+        author: string;
+        image: string;
+      }) => ({
+        id: follow.show_id,
+        title: follow.title,
+        author: follow.author,
+        image: follow.image,
+        description: ''
+      }));
+
+      const showIds = [...new Set(
+        [...buzzShows, ...topShows, ...followedShows].map(show => show.id)
+      )];
+      let viewCounts: Record<string, number> = {};
+
+      if (showIds.length > 0) {
+        const countsRes = await fetch(
+          `${API_BASE}/api/podcasts/buzz/counts?region=${regionCode}&showIds=${showIds.join(',')}`,
+          { cache: 'no-store' }
+        );
+        if (countsRes.ok) {
+          viewCounts = (await countsRes.json()).counts || {};
+        }
       }
+
+      const withCurrentViews = (shows: PodcastShow[]) => shows.map(show => ({
+        ...show,
+        buzzScore: viewCounts[String(show.id)] ?? show.buzzScore ?? 0
+      }));
+
+      setBuzzingNow(withCurrentViews(buzzShows));
+      setTopInRegion(withCurrentViews(topShows));
+      setFollowingShows(withCurrentViews(followedShows));
+      setFollowingIds(new Set(followedShows.map(show => show.id)));
 
       if (newRes.ok) {
         const newData = await newRes.json();
         setNewDrops(newData.episodes || []);
       }
 
-      if (topRes.ok) {
-        const topData = await topRes.json();
-        setTopInRegion(topData.shows || []);
-      }
-
-      if (followsRes.ok) {
-        const followsData = await followsRes.json();
-        const shows = followsData.shows || [];
-        setFollowingShows(shows);
-        setFollowingIds(new Set(shows.map((s: PodcastShow) => s.id)));
-      }
     } catch (err) {
       console.error('Error fetching podcasts:', err);
       setError('Unable to load podcasts. Please try again.');

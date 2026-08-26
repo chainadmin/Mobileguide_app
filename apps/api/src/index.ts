@@ -43,6 +43,7 @@ app.get('/api/buzz/:region/:mediaType/:tmdbId', async (req, res) => {
       [region, mediaType, tmdbId]
     );
     const viewCount = result.rows[0]?.view_count ?? 0;
+    res.set('Cache-Control', 'no-store');
     res.json({ region, mediaType, tmdbId: Number(tmdbId), viewCount });
   } catch (error) {
     console.error('Error getting buzz:', error);
@@ -404,6 +405,41 @@ function isPodcastCacheValid(cachedAt: Date): boolean {
   const diff = (now.getTime() - new Date(cachedAt).getTime()) / (1000 * 60 * 60);
   return diff < PODCAST_CACHE_HOURS;
 }
+
+app.get('/api/podcasts/buzz/counts', async (req, res) => {
+  try {
+    const region = (req.query.region as string) || 'US';
+    const showIds = String(req.query.showIds || '')
+      .split(',')
+      .map(id => Number(id))
+      .filter((id): id is number => Number.isSafeInteger(id) && id > 0)
+      .slice(0, 100);
+
+    if (showIds.length === 0) {
+      return res.json({ region, counts: {} });
+    }
+
+    const result = await query(
+      `SELECT show_id, COUNT(*) as view_count FROM podcast_events
+       WHERE show_id = ANY($1::bigint[]) AND region = $2 AND event_type = 'show_view'
+       AND created_at >= NOW() - INTERVAL '24 hours'
+       GROUP BY show_id`,
+      [showIds, region]
+    );
+
+    const counts: Record<string, number> = {};
+    for (const showId of showIds) counts[String(showId)] = 0;
+    for (const row of result.rows) {
+      counts[String(row.show_id)] = parseInt(row.view_count, 10);
+    }
+
+    res.set('Cache-Control', 'no-store');
+    res.json({ region, counts });
+  } catch (error) {
+    console.error('Error getting podcast buzz counts:', error);
+    res.status(500).json({ error: 'Failed to get podcast buzz counts', counts: {} });
+  }
+});
 
 app.get('/api/podcasts/buzz/show/:showId', async (req, res) => {
   try {

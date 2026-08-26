@@ -19,11 +19,10 @@ import {
   getWatchProviders,
   getPosterUrl,
   formatRating,
-  calculateBuzz,
   TrendingItem,
   WatchProvider
 } from '../services/tmdb';
-import { getTopBuzz } from '../services/api';
+import { getBuzzCount } from '../services/api';
 import { recordAppOpen, getStreak } from '../services/streak';
 import { getCached, setCache } from '../services/cache';
 
@@ -93,14 +92,11 @@ const TrendingScreen = () => {
         setNewThisWeek(cachedDigest.newWeek);
       }
 
-      const [regionalContent, topBuzz, trendingToday, recentReleases] = await Promise.all([
+      const [regionalContent, trendingToday, recentReleases] = await Promise.all([
         getRegionalContent(regionCode, activeProviderIds),
-        getTopBuzz(regionCode),
         getTrending('all', 'day'),
         getNewThisWeek(regionCode)
       ]);
-
-      const buzzMap = new Map(topBuzz.map(b => [`${b.media_type}-${b.tmdb_id}`, b.view_count]));
 
       const top10Items: DigestItem[] = trendingToday.slice(0, 10).map(item => ({
         id: item.id,
@@ -121,12 +117,12 @@ const TrendingScreen = () => {
       await setCache(`${DIGEST_CACHE_KEY}_${regionCode}`, { top10: top10Items, newWeek: newWeekItems });
 
       const tonightItems = await Promise.all(
-        regionalContent.slice(0, 2).map(item => transformItem(item, buzzMap, regionCode))
+        regionalContent.slice(0, 2).map(item => transformItem(item, regionCode))
       );
       setTonightPicks(tonightItems);
 
       const nearYouItems = await Promise.all(
-        regionalContent.slice(2, 7).map(item => transformItem(item, buzzMap, regionCode))
+        regionalContent.slice(2, 7).map(item => transformItem(item, regionCode))
       );
       setTrendingNearYou(nearYouItems);
     } catch (error) {
@@ -144,13 +140,14 @@ const TrendingScreen = () => {
 
   async function transformItem(
     item: TrendingItem, 
-    buzzMap: Map<string, number>,
     regionCode: string
   ): Promise<DisplayItem> {
     const title = item.title || item.name || 'Unknown';
-    const providers = await fetchProviders(item, regionCode);
+    const [providers, buzz] = await Promise.all([
+      fetchProviders(item, regionCode),
+      getBuzzCount(regionCode, item.media_type, item.id)
+    ]);
     const buzzKey = `${item.media_type}-${item.id}`;
-    const buzz = buzzMap.get(buzzKey) || calculateBuzz(item.vote_average);
     
     return {
       id: buzzKey,

@@ -15,10 +15,10 @@ import {
   getWatchProviders,
   getPosterUrl,
   formatRating,
-  calculateBuzz,
   TrendingItem,
   WatchProvider
 } from '../services/tmdb';
+import { getBuzzCount } from '../services/api';
 
 type DisplayItem = {
   id: string;
@@ -113,7 +113,10 @@ const UpcomingScreen = () => {
 
   async function transformItem(item: TrendingItem, regionCode: string, today: Date): Promise<DisplayItem> {
     const title = item.title || item.name || 'Unknown';
-    const providers = await fetchProviders(item, regionCode);
+    const [providers, buzz] = await Promise.all([
+      fetchProviders(item, regionCode),
+      getBuzzCount(regionCode, 'movie', item.id)
+    ]);
     const rawDate = item.release_date || item.first_air_date || '';
     const releaseDate = formatReleaseDate(rawDate);
     
@@ -126,7 +129,7 @@ const UpcomingScreen = () => {
       genre: 'Movie',
       posterUrl: getPosterUrl(item.poster_path),
       providers: providers.slice(0, 3),
-      buzz: calculateBuzz(item.vote_average),
+      buzz,
       releaseDate,
       rawDate
     };
