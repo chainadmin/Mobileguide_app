@@ -43,6 +43,7 @@ app.get('/api/buzz/:region/:mediaType/:tmdbId', async (req, res) => {
       [region, mediaType, tmdbId]
     );
     const viewCount = result.rows[0]?.view_count ?? 0;
+    res.set('Cache-Control', 'no-store');
     res.json({ region, mediaType, tmdbId: Number(tmdbId), viewCount });
   } catch (error) {
     console.error('Error getting buzz:', error);
