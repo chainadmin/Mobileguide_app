@@ -26,7 +26,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 20,
+      "versionCode": 22,
       "permissions": [
         "com.android.vending.BILLING"
       ],
