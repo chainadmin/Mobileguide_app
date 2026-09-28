@@ -3,20 +3,19 @@ import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from 're
 import { useEntitlements } from '../context/EntitlementsContext';
 import { colors, spacing } from '../theme';
 
-const AD_UNIT_ID = Platform.select({
-  android: 'ca-app-pub-1580761947831808/1129971883',
-  ios: 'ca-app-pub-1580761947831808/1129971883',
-  default: ''
-});
+// Ads run on Android only for now; iOS stays ad-free.
+const AD_UNIT_ID = 'ca-app-pub-1580761947831808/1129971883';
 
 // The native module is missing in Expo Go and on builds made without the
 // config plugin. Requiring it inside try/catch keeps the app from crashing
 // in those cases; the banner simply never shows.
 let GoogleMobileAds: typeof import('react-native-google-mobile-ads') | null = null;
-try {
-  GoogleMobileAds = require('react-native-google-mobile-ads');
-} catch (e) {
-  console.log('Google Mobile Ads not available:', e);
+if (Platform.OS === 'android') {
+  try {
+    GoogleMobileAds = require('react-native-google-mobile-ads');
+  } catch (e) {
+    console.log('Google Mobile Ads not available:', e);
+  }
 }
 
 let sdkInit: Promise<unknown> | null = null;

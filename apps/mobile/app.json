@@ -40,12 +40,7 @@
       "supportsTablet": false,
       "requireFullScreen": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "SKAdNetworkItems": [
-          {
-            "SKAdNetworkIdentifier": "cstr6suwn9.skadnetwork"
-          }
-        ]
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
@@ -70,7 +65,7 @@
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-1580761947831808~4467016439",
-          "iosAppId": "ca-app-pub-1580761947831808~4467016439"
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
         }
       ],
       "expo-iap"

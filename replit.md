@@ -192,6 +192,7 @@ This approach keeps frontend and backend code in a single repository while maint
     codegen'd `NativeAppModuleSpec`, which only exists with the New Architecture. The failing
     builds ran before `newArchEnabled` was turned on; ads were removed before a build with both
   - Now on v16.5 (v17 needs RN >= 0.86) with New Architecture on, dependency lives in apps/mobile
+  - Android only for now: iOS never loads the ads SDK (iosAppId is Google's sample ID as a placeholder)
   - AdBanner slides up once an ad loads, has an ✕ to dismiss it on every tab for the session,
     and renders nothing if the native module is missing, the ad fails, or the user is Pro
 - **Feb 2026**: Removed Google AdMob banner ads
