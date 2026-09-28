@@ -4,7 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import AdBanner from '../components/AdBanner';
 import BuzzMeter from '../components/BuzzMeter';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
@@ -288,7 +288,7 @@ const WatchlistScreen = () => {
         </>
       )}
     </ScrollView>
-
+    <AdBanner />
     </SafeAreaView>
   );
 };

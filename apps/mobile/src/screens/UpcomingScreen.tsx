@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import AdBanner from '../components/AdBanner';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
@@ -238,7 +238,7 @@ const UpcomingScreen = () => {
           </View>
         }
       />
-
+      <AdBanner />
     </SafeAreaView>
   );
 };

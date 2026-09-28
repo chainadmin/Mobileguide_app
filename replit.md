@@ -187,6 +187,13 @@ This approach keeps frontend and backend code in a single repository while maint
   - WatchlistScreen displays followed podcasts with BuzzMeter showing regional views
   - Fixed podcast loading in Watchlist (waits for guestId before fetching)
   - Hidden scrollbar on PodcastShowDetailScreen for cleaner UI
+- **Sep 2026**: Restored Google AdMob banner ads
+  - Root cause of the Feb build failure: `react-native-google-mobile-ads` v16 compiles against
+    codegen'd `NativeAppModuleSpec`, which only exists with the New Architecture. The failing
+    builds ran before `newArchEnabled` was turned on; ads were removed before a build with both
+  - Now on v16.5 (v17 needs RN >= 0.86) with New Architecture on, dependency lives in apps/mobile
+  - AdBanner slides up once an ad loads, has an ✕ to dismiss it on every tab for the session,
+    and renders nothing if the native module is missing, the ad fails, or the user is Pro
 - **Feb 2026**: Removed Google AdMob banner ads
   - react-native-google-mobile-ads v16 incompatible with Expo SDK 54 (build failures)
   - Removed AdBanner component, withAdIdPermission plugin, and all ad config

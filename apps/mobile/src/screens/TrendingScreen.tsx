@@ -4,7 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import AdBanner from '../components/AdBanner';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
@@ -304,7 +304,7 @@ const TrendingScreen = () => {
       
       {newThisWeek.length > 0 && renderDigestStrip(newThisWeek, 'NEW THIS WEEK', 'Fresh releases to check out.')}
     </ScrollView>
-
+    <AdBanner />
   </SafeAreaView>
   );
 };
