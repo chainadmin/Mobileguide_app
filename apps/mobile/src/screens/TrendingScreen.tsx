@@ -23,6 +23,7 @@ import {
   WatchProvider
 } from '../services/tmdb';
 import { getBuzzCount } from '../services/api';
+import { getRegionBuzz, rankByBuzz } from '../services/ranking';
 import { recordAppOpen, getStreak } from '../services/streak';
 import { getCached, setCache } from '../services/cache';
 
@@ -92,11 +93,14 @@ const TrendingScreen = () => {
         setNewThisWeek(cachedDigest.newWeek);
       }
 
-      const [regionalContent, trendingToday, recentReleases] = await Promise.all([
+      const [regionalResults, trendingResults, recentReleases, buzz] = await Promise.all([
         getRegionalContent(regionCode, activeProviderIds),
         getTrending('all', 'day'),
-        getNewThisWeek(regionCode)
+        getNewThisWeek(regionCode),
+        getRegionBuzz(regionCode)
       ]);
+      const regionalContent = rankByBuzz(regionalResults, buzz);
+      const trendingToday = rankByBuzz(trendingResults, buzz);
 
       const top10Items: DigestItem[] = trendingToday.slice(0, 10).map(item => ({
         id: item.id,
