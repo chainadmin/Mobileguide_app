@@ -198,7 +198,8 @@ This approach keeps frontend and backend code in a single repository while maint
   - Root cause of the Feb build failure: `react-native-google-mobile-ads` v16 compiles against
     codegen'd `NativeAppModuleSpec`, which only exists with the New Architecture. The failing
     builds ran before `newArchEnabled` was turned on; ads were removed before a build with both
-  - Now on v16.5 (v17 needs RN >= 0.86) with New Architecture on, dependency lives in apps/mobile
+  - Pinned to v16.0.3 (Android ads SDK 24.9.0): 16.4+ ships ads SDK 25.4.0, whose Kotlin 2.3
+    metadata fails to compile on this project's Kotlin. New Architecture must stay on for v16
   - Android only for now: iOS never loads the ads SDK (iosAppId is Google's sample ID as a placeholder)
   - AdBanner slides up once an ad loads, has an ✕ to dismiss it on every tab for the session,
     and renders nothing if the native module is missing, the ad fails, or the user is Pro
