@@ -4,7 +4,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import AdBanner from '../components/AdBanner';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
@@ -19,6 +19,7 @@ import {
   WatchProvider
 } from '../services/tmdb';
 import { getBuzzCount } from '../services/api';
+import { getRegionBuzz, rankByBuzz } from '../services/ranking';
 
 type DisplayItem = {
   id: string;
@@ -57,7 +58,10 @@ const UpcomingScreen = () => {
     try {
       setLoading(true);
       const regionCode = region.code;
-      const upcoming = await getUpcoming(regionCode);
+      const [upcoming, buzz] = await Promise.all([
+        getUpcoming(regionCode),
+        getRegionBuzz(regionCode)
+      ]);
       
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -72,7 +76,7 @@ const UpcomingScreen = () => {
       });
 
       const items = await Promise.all(
-        filtered.slice(0, 15).map(item => transformItem(item, regionCode, today))
+        rankByBuzz(filtered, buzz).slice(0, 15).map(item => transformItem(item, regionCode, today))
       );
 
       const grouped = items.reduce<Record<string, { items: DisplayItem[], isToday: boolean }>>((acc, item) => {
@@ -238,7 +242,7 @@ const UpcomingScreen = () => {
           </View>
         }
       />
-
+      <AdBanner />
     </SafeAreaView>
   );
 };

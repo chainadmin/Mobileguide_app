@@ -1,3 +1,5 @@
+import { getGuestId } from './guestId';
+
 const API_BASE_URL = 'https://welcoming-elegance-production-9299.up.railway.app';
 
 export async function getBuzzCount(region: string, mediaType: string, tmdbId: number): Promise<number> {
@@ -16,9 +18,11 @@ export async function getBuzzCount(region: string, mediaType: string, tmdbId: nu
 
 export async function recordView(region: string, mediaType: string, tmdbId: number): Promise<number> {
   try {
+    const guestId = await getGuestId();
     const response = await fetch(`${API_BASE_URL}/api/buzz/${region}/${mediaType}/${tmdbId}/view`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ guestId })
     });
     if (!response.ok) return 0;
     const data = await response.json();
@@ -31,7 +35,7 @@ export async function recordView(region: string, mediaType: string, tmdbId: numb
 
 export async function getTopBuzz(region: string): Promise<{ media_type: string; tmdb_id: number; view_count: number }[]> {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/buzz/${region}/top`);
+    const response = await fetch(`${API_BASE_URL}/api/buzz/${region}/top`, { cache: 'no-store' });
     if (!response.ok) return [];
     const data = await response.json();
     return data.items ?? [];

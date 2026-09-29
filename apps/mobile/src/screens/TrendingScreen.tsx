@@ -4,7 +4,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../App';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
+import AdBanner from '../components/AdBanner';
 import PosterCard from '../components/PosterCard';
 import SectionHeader from '../components/SectionHeader';
 import SkeletonCard from '../components/SkeletonCard';
@@ -23,6 +23,7 @@ import {
   WatchProvider
 } from '../services/tmdb';
 import { getBuzzCount } from '../services/api';
+import { getRegionBuzz, rankByBuzz } from '../services/ranking';
 import { recordAppOpen, getStreak } from '../services/streak';
 import { getCached, setCache } from '../services/cache';
 
@@ -92,11 +93,14 @@ const TrendingScreen = () => {
         setNewThisWeek(cachedDigest.newWeek);
       }
 
-      const [regionalContent, trendingToday, recentReleases] = await Promise.all([
+      const [regionalResults, trendingResults, recentReleases, buzz] = await Promise.all([
         getRegionalContent(regionCode, activeProviderIds),
         getTrending('all', 'day'),
-        getNewThisWeek(regionCode)
+        getNewThisWeek(regionCode),
+        getRegionBuzz(regionCode)
       ]);
+      const regionalContent = rankByBuzz(regionalResults, buzz);
+      const trendingToday = rankByBuzz(trendingResults, buzz);
 
       const top10Items: DigestItem[] = trendingToday.slice(0, 10).map(item => ({
         id: item.id,
@@ -304,7 +308,7 @@ const TrendingScreen = () => {
       
       {newThisWeek.length > 0 && renderDigestStrip(newThisWeek, 'NEW THIS WEEK', 'Fresh releases to check out.')}
     </ScrollView>
-
+    <AdBanner />
   </SafeAreaView>
   );
 };

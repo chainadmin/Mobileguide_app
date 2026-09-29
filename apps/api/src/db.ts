@@ -27,6 +27,19 @@ export async function initDb() {
     CREATE INDEX IF NOT EXISTS idx_buzz_views_region ON buzz_views(region, media_type, tmdb_id)
   `);
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS buzz_events (
+      id SERIAL PRIMARY KEY,
+      region VARCHAR(5) NOT NULL,
+      media_type VARCHAR(10) NOT NULL,
+      tmdb_id INTEGER NOT NULL,
+      guest_id VARCHAR(36),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_buzz_events_region_time ON buzz_events(region, created_at)
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS watchlists (
       id SERIAL PRIMARY KEY,
       guest_id VARCHAR(36) NOT NULL,

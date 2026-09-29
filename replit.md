@@ -187,6 +187,21 @@ This approach keeps frontend and backend code in a single repository while maint
   - WatchlistScreen displays followed podcasts with BuzzMeter showing regional views
   - Fixed podcast loading in Watchlist (waits for guestId before fetching)
   - Hidden scrollbar on PodcastShowDetailScreen for cleaner UI
+- **Sep 2026**: Rankings now respond to what people open
+  - Every title view is logged to `buzz_events` (with guestId); `/api/buzz/:region/top` counts
+    distinct viewers over the last 7 days
+  - Trending (Tonight's Picks, Buzzing Near You, Top 10) and Upcoming blend TMDB order with
+    those viewer counts (`src/services/ranking.ts`); clicks get full weight from 10 viewers up
+  - Podcast Buzzing Now: fixed stale scores piling up in `podcast_buzz_cache`, refreshes every
+    15 min, tops up with trending shows instead of replacing the list when activity is low
+- **Sep 2026**: Restored Google AdMob banner ads
+  - Root cause of the Feb build failure: `react-native-google-mobile-ads` v16 compiles against
+    codegen'd `NativeAppModuleSpec`, which only exists with the New Architecture. The failing
+    builds ran before `newArchEnabled` was turned on; ads were removed before a build with both
+  - Now on v16.5 (v17 needs RN >= 0.86) with New Architecture on, dependency lives in apps/mobile
+  - Android only for now: iOS never loads the ads SDK (iosAppId is Google's sample ID as a placeholder)
+  - AdBanner slides up once an ad loads, has an ✕ to dismiss it on every tab for the session,
+    and renders nothing if the native module is missing, the ad fails, or the user is Pro
 - **Feb 2026**: Removed Google AdMob banner ads
   - react-native-google-mobile-ads v16 incompatible with Expo SDK 54 (build failures)
   - Removed AdBanner component, withAdIdPermission plugin, and all ad config

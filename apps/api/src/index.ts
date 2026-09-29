@@ -54,6 +54,11 @@ app.get('/api/buzz/:region/:mediaType/:tmdbId', async (req, res) => {
 app.post('/api/buzz/:region/:mediaType/:tmdbId/view', async (req, res) => {
   try {
     const { region, mediaType, tmdbId } = req.params;
+    const guestId = typeof req.body?.guestId === 'string' ? req.body.guestId.slice(0, 36) : null;
+    await query(
+      'INSERT INTO buzz_events (region, media_type, tmdb_id, guest_id) VALUES ($1, $2, $3, $4)',
+      [region, mediaType, tmdbId, guestId]
+    );
     await query(
       `INSERT INTO buzz_views (region, media_type, tmdb_id, view_count)
        VALUES ($1, $2, $3, 1)
@@ -76,11 +81,22 @@ app.post('/api/buzz/:region/:mediaType/:tmdbId/view', async (req, res) => {
 app.get('/api/buzz/:region/top', async (req, res) => {
   try {
     const { region } = req.params;
+    const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 30);
+    // Counts distinct viewers in the window so one person reopening a title
+    // can't push it up the list. Older app versions send no guestId, so each
+    // of their views counts once.
     const result = await query(
-      'SELECT media_type, tmdb_id, view_count FROM buzz_views WHERE region = $1 ORDER BY view_count DESC LIMIT 20',
-      [region]
+      `SELECT media_type, tmdb_id,
+              COUNT(DISTINCT COALESCE(guest_id, 'anon-' || id))::int AS view_count
+       FROM buzz_events
+       WHERE region = $1 AND created_at >= NOW() - make_interval(days => $2)
+       GROUP BY media_type, tmdb_id
+       ORDER BY view_count DESC
+       LIMIT 100`,
+      [region, days]
     );
-    res.json({ region, items: result.rows });
+    res.set('Cache-Control', 'no-store');
+    res.json({ region, days, items: result.rows });
   } catch (error) {
     console.error('Error getting top buzz:', error);
     res.status(500).json({ error: 'Failed to get top buzz' });
@@ -399,11 +415,14 @@ app.get('/terms', (_req, res) => {
 });
 
 const PODCAST_CACHE_HOURS = 6;
+// Buzzing Now is driven by listener activity, so it refreshes much faster
+// than the catalog-based lists.
+const PODCAST_BUZZ_CACHE_HOURS = 0.25;
 
-function isPodcastCacheValid(cachedAt: Date): boolean {
+function isPodcastCacheValid(cachedAt: Date, hours: number = PODCAST_CACHE_HOURS): boolean {
   const now = new Date();
   const diff = (now.getTime() - new Date(cachedAt).getTime()) / (1000 * 60 * 60);
-  return diff < PODCAST_CACHE_HOURS;
+  return diff < hours;
 }
 
 app.get('/api/podcasts/buzz/counts', async (req, res) => {
@@ -499,7 +518,7 @@ app.get('/api/podcasts/buzz', async (req, res) => {
       [cacheKey]
     );
     
-    if (cached.rows[0] && isPodcastCacheValid(cached.rows[0].cached_at)) {
+    if (cached.rows[0] && isPodcastCacheValid(cached.rows[0].cached_at, PODCAST_BUZZ_CACHE_HOURS)) {
       const data = typeof cached.rows[0].data === 'string' 
         ? JSON.parse(cached.rows[0].data) 
         : cached.rows[0].data;
@@ -545,9 +564,18 @@ app.get('/api/podcasts/buzz', async (req, res) => {
       }
     }
     
-    if (shows.length < 5) {
+    if (shows.length < 20) {
+      // Top up with globally trending shows so the list is never sparse,
+      // keeping the listener-ranked shows first.
       const trending = await getTrendingPodcasts(20, 'en');
-      shows = trending;
+      const seen = new Set(shows.map(show => show.id));
+      for (const show of trending) {
+        if (shows.length >= 20) break;
+        if (!seen.has(show.id)) {
+          seen.add(show.id);
+          shows.push(show);
+        }
+      }
     }
     
     const responseData = { shows, region };
@@ -841,15 +869,19 @@ async function computePodcastBuzz(region: string) {
     scores.set(entityId, (scores.get(entityId) || 0) + score);
   }
 
-  for (const [entityId, score] of scores) {
-    await query(
-      `INSERT INTO podcast_buzz_cache (region, entity_type, entity_id, score, window_start, window_end, computed_at)
-       VALUES ($1, 'show', $2, $3, $4, $5, NOW())
-       ON CONFLICT (region, entity_type, entity_id, window_start)
-       DO UPDATE SET score = $3, computed_at = NOW()`,
-      [region, entityId, Math.round(score), windowStart, windowEnd]
-    );
-  }
+  // Replace the region's scores in one statement. window_start differs on
+  // every run, so upserting used to pile up rows and let stale scores from
+  // earlier windows keep ranking.
+  const entityIds = [...scores.keys()];
+  await query(
+    `WITH cleared AS (
+       DELETE FROM podcast_buzz_cache WHERE region = $1 AND entity_type = 'show'
+     )
+     INSERT INTO podcast_buzz_cache (region, entity_type, entity_id, score, window_start, window_end, computed_at)
+     SELECT $1, 'show', ids.entity_id, ids.score, $4, $5, NOW()
+     FROM unnest($2::bigint[], $3::int[]) AS ids(entity_id, score)`,
+    [region, entityIds, entityIds.map(id => Math.round(scores.get(id) || 0)), windowStart, windowEnd]
+  );
 
   return scores.size;
 }
