@@ -201,6 +201,8 @@ This approach keeps frontend and backend code in a single repository while maint
   - Pinned to v16.0.3 (Android ads SDK 24.9.0): 16.4+ ships ads SDK 25.4.0, whose Kotlin 2.3
     metadata fails to compile on this project's Kotlin. New Architecture must stay on for v16
   - Android only for now: iOS never loads the ads SDK (iosAppId is Google's sample ID as a placeholder)
+  - AD_ID permission is included again (Play Console declares advertising ID use); the old
+    withRemoveAdId plugin and blockedPermissions entry were removed
   - AdBanner slides up once an ad loads, has an ✕ to dismiss it on every tab for the session,
     and renders nothing if the native module is missing, the ad fails, or the user is Pro
 - **Feb 2026**: Removed Google AdMob banner ads

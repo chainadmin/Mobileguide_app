@@ -26,11 +26,9 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 23,
+      "versionCode": 24,
       "permissions": [
-        "com.android.vending.BILLING"
-      ],
-      "blockedPermissions": [
+        "com.android.vending.BILLING",
         "com.google.android.gms.permission.AD_ID"
       ]
     },
@@ -45,7 +43,6 @@
     },
     "plugins": [
       "./plugins/withDisableCppWarningsAsErrors",
-      "./plugins/withRemoveAdId",
       [
         "expo-build-properties",
         {
