@@ -187,6 +187,15 @@ This approach keeps frontend and backend code in a single repository while maint
   - WatchlistScreen displays followed podcasts with BuzzMeter showing regional views
   - Fixed podcast loading in Watchlist (waits for guestId before fetching)
   - Hidden scrollbar on PodcastShowDetailScreen for cleaner UI
+- **Nov 2026**: Crash-rate fixes (Android build 25)
+  - Ad banner is now rendered once, between the tab screens and the tab bar (`tabBar` in
+    App.tsx). It used to be inside each of the 4 tab screens; visited tabs stay mounted, so that
+    meant up to 4 live AdMob WebViews at once (memory / WebView renderer crashes). Do not put
+    `<AdBanner />` back inside a screen
+  - Ads SDK starts 3s after launch; `delayAppMeasurementInit` is on
+  - Every screen and the app root are wrapped in `ErrorBoundary`: a render error shows a
+    "Try again" screen instead of closing the app
+  - Title details tolerate TMDB data with missing genres, runtime or rating
 - **Sep 2026**: Rankings now respond to what people open
   - Every title view is logged to `buzz_events` (with guestId); `/api/buzz/:region/top` counts
     distinct viewers over the last 7 days

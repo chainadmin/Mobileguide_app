@@ -54,7 +54,7 @@ const TitleDetailScreen = () => {
         ]);
         setDetails(detailsData);
         setBuzzCount(viewCount);
-        if (providersData?.flatrate) {
+        if (Array.isArray(providersData?.flatrate)) {
           setProviders(providersData.flatrate.map((p: WatchProvider) => p.provider_name));
         }
       } catch (error) {
@@ -99,15 +99,15 @@ const TitleDetailScreen = () => {
 
   const title = 'title' in details ? details.title : details.name;
   const releaseDate = 'release_date' in details ? details.release_date : details.first_air_date;
-  const runtime = 'runtime' in details 
-    ? formatRuntime(details.runtime) 
-    : details.episode_run_time[0] 
-      ? formatRuntime(details.episode_run_time[0]) 
-      : 'N/A';
+  // TMDB leaves fields out for some titles, so don't assume any are present.
+  const runtime = 'runtime' in details
+    ? formatRuntime(details.runtime)
+    : formatRuntime(details.episode_run_time?.[0]);
+  const genres = Array.isArray(details.genres) ? details.genres : [];
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-      {details.backdrop_path && (
+      {!!details.backdrop_path && (
         <Image
           source={{ uri: getBackdropUrl(details.backdrop_path) }}
           style={styles.backdrop}
@@ -135,7 +135,7 @@ const TitleDetailScreen = () => {
         </View>
 
         <View style={styles.genresRow}>
-          {details.genres.slice(0, 3).map(genre => (
+          {genres.slice(0, 3).map(genre => (
             <View key={genre.id} style={styles.genreChip}>
               <Text style={styles.genreText}>{genre.name}</Text>
             </View>

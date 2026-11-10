@@ -22,66 +22,67 @@ let sdkInit: Promise<unknown> | null = null;
 const initializeAds = () => {
   if (!GoogleMobileAds) return Promise.reject(new Error('Ads unavailable'));
   if (!sdkInit) {
-    sdkInit = GoogleMobileAds.default().initialize().catch((e) => {
+    try {
+      sdkInit = GoogleMobileAds.default().initialize().catch((e) => {
+        sdkInit = null;
+        throw e;
+      });
+    } catch (e) {
       sdkInit = null;
-      throw e;
-    });
+      return Promise.reject(e);
+    }
   }
   return sdkInit;
 };
 
-// Closing the banner hides it on every tab until the app is relaunched.
-let dismissedThisSession = false;
-const dismissListeners = new Set<() => void>();
-const dismissEverywhere = () => {
-  dismissedThisSession = true;
-  dismissListeners.forEach((listener) => listener());
-};
+// Wait this long after launch before starting the ads SDK, so it does not
+// compete with the first screen for memory and the main thread.
+const INIT_DELAY_MS = 3000;
 
-const HIDDEN_OFFSET = 200;
-
+/**
+ * A single banner shared by every tab. It is rendered once, between the tab
+ * screens and the tab bar (see App.tsx), and never inside individual screens:
+ * the tab navigator keeps visited screens mounted, so a banner per screen
+ * meant up to four live AdMob WebViews loading and refreshing at once, a
+ * common cause of out-of-memory and WebView renderer crashes on Android.
+ */
 const AdBanner = () => {
   const { isPro, loading } = useEntitlements();
   const [ready, setReady] = useState(false);
-  const [dismissed, setDismissed] = useState(dismissedThisSession);
+  const [dismissed, setDismissed] = useState(false);
   const [adLoaded, setAdLoaded] = useState(false);
   const [adError, setAdError] = useState(false);
-  const translateY = useRef(new Animated.Value(HIDDEN_OFFSET)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const listener = () => setDismissed(true);
-    dismissListeners.add(listener);
-    return () => {
-      dismissListeners.delete(listener);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (loading || isPro || dismissed) return;
+    if (loading || isPro || dismissed || ready) return;
     let cancelled = false;
-    initializeAds()
-      .then(() => !cancelled && setReady(true))
-      .catch((e) => console.log('Ads failed to initialize:', e));
+    const timer = setTimeout(() => {
+      initializeAds()
+        .then(() => {
+          if (!cancelled) setReady(true);
+        })
+        .catch((e) => console.log('Ads failed to initialize:', e));
+    }, INIT_DELAY_MS);
     return () => {
       cancelled = true;
+      clearTimeout(timer);
     };
-  }, [loading, isPro, dismissed]);
+  }, [loading, isPro, dismissed, ready]);
 
   useEffect(() => {
     if (!adLoaded) return;
-    Animated.spring(translateY, {
-      toValue: 0,
-      useNativeDriver: true,
-      friction: 8
+    Animated.timing(opacity, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true
     }).start();
-  }, [adLoaded, translateY]);
+  }, [adLoaded, opacity]);
 
   const handleClose = () => {
-    Animated.timing(translateY, {
-      toValue: HIDDEN_OFFSET,
-      duration: 200,
-      useNativeDriver: true
-    }).start(() => dismissEverywhere());
+    // Unmount right away instead of after an animation: the callback of an
+    // animation can fire after the view is gone.
+    setDismissed(true);
   };
 
   if (!GoogleMobileAds || loading || isPro || dismissed || adError || !ready) {
@@ -93,10 +94,10 @@ const AdBanner = () => {
 
   return (
     <Animated.View
-      style={[styles.container, { transform: [{ translateY }] }, !adLoaded && styles.hidden]}
+      style={[styles.container, { opacity }, !adLoaded && styles.collapsed]}
       pointerEvents={adLoaded ? 'box-none' : 'none'}
     >
-      <View style={styles.banner}>
+      {adLoaded && (
         <View style={styles.header}>
           <Text style={styles.adLabel}>AD</Text>
           <TouchableOpacity
@@ -109,33 +110,37 @@ const AdBanner = () => {
             <Text style={styles.closeText}>✕</Text>
           </TouchableOpacity>
         </View>
-        <BannerAd
-          unitId={unitId}
-          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-          requestOptions={{ requestNonPersonalizedAdsOnly: true }}
-          onAdLoaded={() => setAdLoaded(true)}
-          onAdFailedToLoad={(error) => {
-            console.log('Ad failed to load:', error);
-            setAdError(true);
-          }}
-        />
-      </View>
+      )}
+      <BannerAd
+        unitId={unitId}
+        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+        requestOptions={REQUEST_OPTIONS}
+        onAdLoaded={() => setAdLoaded(true)}
+        onAdFailedToLoad={(error) => {
+          console.log('Ad failed to load:', error);
+          setAdError(true);
+        }}
+      />
     </Animated.View>
   );
 };
 
+// Kept stable so the native view is not handed a "new" request every render.
+const REQUEST_OPTIONS = { requestNonPersonalizedAdsOnly: true };
+
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0
-  },
-  banner: {
     alignItems: 'center',
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border
+  },
+  // Until an ad arrives the banner takes no space and is invisible, but it
+  // stays mounted so the ad can load.
+  collapsed: {
+    height: 0,
+    borderTopWidth: 0,
+    overflow: 'hidden'
   },
   header: {
     alignSelf: 'stretch',
@@ -169,9 +174,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontSize: 12,
     fontWeight: '700'
-  },
-  hidden: {
-    opacity: 0
   }
 });
 

@@ -1,5 +1,8 @@
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { ComponentType } from 'react';
+import { View } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackNavigationOptions } from '@react-navigation/native-stack';
 import { colors } from './src/theme';
@@ -8,20 +11,49 @@ import { WatchlistProvider } from './src/context/WatchlistContext';
 import { EntitlementsProvider } from './src/context/EntitlementsContext';
 import { PlatformFiltersProvider } from './src/context/PlatformFiltersContext';
 import { AlertsProvider } from './src/context/AlertsContext';
+import AdBanner from './src/components/AdBanner';
+import ErrorBoundary from './src/components/ErrorBoundary';
 
-import PaywallScreen from './src/screens/PaywallScreen';
-import PlatformFiltersScreen from './src/screens/PlatformFiltersScreen';
-import PodcastsScreen from './src/screens/PodcastsScreen';
-import PodcastShowDetailScreen from './src/screens/PodcastShowDetailScreen';
-import PodcastEpisodeDetailScreen from './src/screens/PodcastEpisodeDetailScreen';
-import RegionSelectScreen from './src/screens/RegionSelectScreen';
-import SearchScreen from './src/screens/SearchScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
-import SplashScreen from './src/screens/SplashScreen';
-import TitleDetailScreen from './src/screens/TitleDetailScreen';
-import TrendingScreen from './src/screens/TrendingScreen';
-import UpcomingScreen from './src/screens/UpcomingScreen';
-import WatchlistScreen from './src/screens/WatchlistScreen';
+import PaywallScreenRaw from './src/screens/PaywallScreen';
+import PlatformFiltersScreenRaw from './src/screens/PlatformFiltersScreen';
+import PodcastsScreenRaw from './src/screens/PodcastsScreen';
+import PodcastShowDetailScreenRaw from './src/screens/PodcastShowDetailScreen';
+import PodcastEpisodeDetailScreenRaw from './src/screens/PodcastEpisodeDetailScreen';
+import RegionSelectScreenRaw from './src/screens/RegionSelectScreen';
+import SearchScreenRaw from './src/screens/SearchScreen';
+import SettingsScreenRaw from './src/screens/SettingsScreen';
+import SplashScreenRaw from './src/screens/SplashScreen';
+import TitleDetailScreenRaw from './src/screens/TitleDetailScreen';
+import TrendingScreenRaw from './src/screens/TrendingScreen';
+import UpcomingScreenRaw from './src/screens/UpcomingScreen';
+import WatchlistScreenRaw from './src/screens/WatchlistScreen';
+
+// Each screen gets its own error boundary, so a render error in one screen
+// shows a "try again" message there (with the header's back button still
+// working) instead of crashing the app.
+function withErrorBoundary<P extends object>(Screen: ComponentType<P>) {
+  const Wrapped = (props: P) => (
+    <ErrorBoundary>
+      <Screen {...props} />
+    </ErrorBoundary>
+  );
+  Wrapped.displayName = `withErrorBoundary(${Screen.displayName || Screen.name || 'Screen'})`;
+  return Wrapped;
+}
+
+const PaywallScreen = withErrorBoundary(PaywallScreenRaw);
+const PlatformFiltersScreen = withErrorBoundary(PlatformFiltersScreenRaw);
+const PodcastsScreen = withErrorBoundary(PodcastsScreenRaw);
+const PodcastShowDetailScreen = withErrorBoundary(PodcastShowDetailScreenRaw);
+const PodcastEpisodeDetailScreen = withErrorBoundary(PodcastEpisodeDetailScreenRaw);
+const RegionSelectScreen = withErrorBoundary(RegionSelectScreenRaw);
+const SearchScreen = withErrorBoundary(SearchScreenRaw);
+const SettingsScreen = withErrorBoundary(SettingsScreenRaw);
+const SplashScreen = withErrorBoundary(SplashScreenRaw);
+const TitleDetailScreen = withErrorBoundary(TitleDetailScreenRaw);
+const TrendingScreen = withErrorBoundary(TrendingScreenRaw);
+const UpcomingScreen = withErrorBoundary(UpcomingScreenRaw);
+const WatchlistScreen = withErrorBoundary(WatchlistScreenRaw);
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -63,9 +95,20 @@ const smoothStackScreenOptions: NativeStackNavigationOptions = {
   fullScreenGestureEnabled: true
 };
 
+// The one ad banner for all tabs sits between the tab screens and the tab
+// bar. Never render AdBanner inside a screen: visited tabs stay mounted, so
+// that would create one ad view per tab.
+const TabBarWithAd = (props: BottomTabBarProps) => (
+  <View>
+    <AdBanner />
+    <BottomTabBar {...props} />
+  </View>
+);
+
 const Tabs = () => {
   return (
     <Tab.Navigator
+      tabBar={TabBarWithAd}
       screenOptions={{
         headerShown: false,
         lazy: true,
@@ -161,9 +204,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <EntitlementsProvider>
-      <AppContent />
-    </EntitlementsProvider>
+    <ErrorBoundary>
+      <EntitlementsProvider>
+        <AppContent />
+      </EntitlementsProvider>
+    </ErrorBoundary>
   );
 };
 

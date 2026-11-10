@@ -26,7 +26,7 @@
         "backgroundColor": "#0c0d12"
       },
       "package": "com.buzzreel.app",
-      "versionCode": 24,
+      "versionCode": 25,
       "permissions": [
         "com.android.vending.BILLING",
         "com.google.android.gms.permission.AD_ID"
@@ -62,7 +62,8 @@
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-1580761947831808~4467016439",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true
         }
       ],
       "expo-iap"
