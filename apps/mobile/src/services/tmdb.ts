@@ -251,7 +251,7 @@ export async function getWatchProviders(
   const data = await fetchTMDB<{ results: Record<string, WatchProviderResult> }>(
     `/${mediaType}/${id}/watch/providers`
   );
-  return data.results[region] || null;
+  return data?.results?.[region] || null;
 }
 
 export function getPosterUrl(path: string | null, size: 'w185' | 'w342' | 'w500' | 'original' = 'w342'): string {
@@ -264,14 +264,16 @@ export function getBackdropUrl(path: string | null, size: 'w780' | 'w1280' | 'or
   return `${TMDB_IMAGE_BASE}/${size}${path}`;
 }
 
-export function formatRuntime(minutes: number): string {
+export function formatRuntime(minutes: number | null | undefined): string {
+  if (typeof minutes !== 'number' || !isFinite(minutes) || minutes <= 0) return 'N/A';
   const hrs = Math.floor(minutes / 60);
   const mins = minutes % 60;
   if (hrs === 0) return `${mins}m`;
   return `${hrs}h ${mins}m`;
 }
 
-export function formatRating(rating: number): string {
+export function formatRating(rating: number | null | undefined): string {
+  if (typeof rating !== 'number' || !isFinite(rating)) return 'N/A';
   return rating.toFixed(1);
 }
 

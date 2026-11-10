@@ -155,7 +155,7 @@ const PodcastEpisodeDetailScreen = () => {
         <Text style={styles.metaText}>{formatDuration(episode.duration)}</Text>
       </View>
 
-      {episode.audioUrl && (
+      {!!episode.audioUrl && (
         <TouchableOpacity style={styles.playButton} onPress={handlePlayExternal} activeOpacity={0.8}>
           <Text style={styles.playIcon}>▶</Text>
           <Text style={styles.playButtonText}>Listen in Podcast App</Text>
